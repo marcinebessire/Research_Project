@@ -81,5 +81,5 @@ colnames(df_data_cleaned) <- new_colnames
 df_data_cleaned <- df_data_cleaned[-1, ] 
 
 #write new CSV
-write_csv(df_data_cleaned, "/Users/marcinebessire/Desktop/project/cleaned_data_fixed_2024.csv")
+write_csv(df_data_cleaned, "/Users/marcinebessire/Desktop/project/cleaned_data_2024.csv")
 
