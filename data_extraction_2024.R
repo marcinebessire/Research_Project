@@ -1,9 +1,9 @@
 # Load necessary library
-library(tidyverse) #data visualization, collection of packagess
-library(lubridate) #to handle dats better
+library(tidyverse) #data visualization, collection of packages
+library(lubridate) #to handle dates better
 
 # Part 1 -------
-# Read Data, make unique column names (handle duplications)
+# Read Data, make unique column names (handle duplication)
 
 # Read the CSV file
 file_path <- "/Users/marcinebessire/Desktop/project/Result_out_MS2_filtered_20250218.csv"
@@ -37,16 +37,16 @@ colnames(df_data) <- col_names
 # Merge column name and first row of data to get unique names
 
 df_data_cleaned <- df_data %>%
-  mutate(
+  mutate( #mutate to create or edit existing columns in a dataframe
     #extract date from anywhere in the Name column (because not the same)
-    Whole_Date = str_extract(Name, "\\d{8}"),   
+    Whole_Date = str_extract(Name, "\\d{8}"), #\\d for matching any digits
     Whole_Date = as.Date(Whole_Date, format="%Y%m%d"), 
     Year = year(Whole_Date), 
     MonthDay = format(Whole_Date, "%m-%d"),
     
     #extract only the meaningful part of ID 
     ID = str_remove(Name, ".*?_NIST_?"),  #remove everything before and including "NIST_"
-    ID = str_remove(ID, "^DI_"),  #remove "DI_" prefix if present
+    ID = str_remove(ID, "^DI_"),  #remove "DI_" prefix if present, ^ for the beginning 
     ID = str_remove(ID, "\\d{8}"),  #remove date if it appears again (for the wrongly ordered)
     ID = str_replace(ID, "^_|_$", ""),  #remove underscores
     
