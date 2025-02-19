@@ -73,9 +73,14 @@ colnames(df_data_cleaned) <- new_colnames
 #remove first row after merging 
 df_data_cleaned <- df_data_cleaned[-1, ]
 
+# Part 4 ------
+# Convert data columns (keeping metadata unchanged)
+info_cols <- c("Name", "ID", "Year", "MonthDay", "Trial") 
+
+df_data_cleaned <- df_data_cleaned %>%
+  mutate(across(-all_of(info_cols), ~ suppressWarnings(as.numeric(.))))  
 
 #write new csv
 write_csv(df_data_cleaned, "/Users/marcinebessire/Desktop/project/cleaned_data_2023.csv")
-
 
 
