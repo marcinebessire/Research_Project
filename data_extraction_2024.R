@@ -7,12 +7,12 @@ library(lubridate) #to handle dats better
 
 # Read the CSV file
 file_path <- "/Users/marcinebessire/Desktop/project/Result_out_MS2_filtered_20250218.csv"
-df_data <- read_csv(file_path, name_repair = "minimal") #keep duplicates
+df_data <- read_csv(file_path, name_repair = "minimal") # Keep duplicate names
 
-#change change duplicated names to .2, .3 etc. 
-name_count <- table(colnames(df_data)) #make table with count of each name
-seen_count <- list() #to check how many names have appeared
-col_names <- colnames(df_data) #store current column names
+#change change duplicated names to .2, .3 etc.
+name_count <- table(colnames(df_data)) 
+seen_count <- list() 
+col_names <- colnames(df_data)
 
 #iterate through column names and rename duplicates
 for (i in seq_along(col_names)){
@@ -32,29 +32,36 @@ for (i in seq_along(col_names)){
 #assign the new column names 
 colnames(df_data) <- col_names
 
-#becuase some Names are different identify them and reverse order so all start with number 
-
 # Part 2 ------
 # Expand Name column 
 # Merge column name and first row of data to get unique names
 
-#extract Year and Date from the Name column
 df_data_cleaned <- df_data %>%
   mutate(
-    ID = str_remove(Name, "^[^_]+_[^_]+_"), 
-    Whole_Date = as.Date(str_extract(Name, "^\\d{8}"), format="%Y%m%d"), #YYYYMMDD
-    Year = str_sub(Whole_Date, 1, 4), #YYYY
+    #extract date from anywhere in the Name column (because not the same)
+    Whole_Date = str_extract(Name, "\\d{8}"),   
+    Whole_Date = as.Date(Whole_Date, format="%Y%m%d"), 
+    Year = year(Whole_Date), 
     MonthDay = format(Whole_Date, "%m-%d"),
-    Trial_number = dense_rank(MonthDay), #rank based on MonthDay
-    Trial = paste0("Trial ", Trial_number), #Set Trial number for each Trial
+    
+    #extract only the meaningful part of ID 
+    ID = str_remove(Name, ".*?_NIST_?"),  #remove everything before and including "NIST_"
+    ID = str_remove(ID, "^DI_"),  #remove "DI_" prefix if present
+    ID = str_remove(ID, "\\d{8}"),  #remove date if it appears again (for the wrongly ordered)
+    ID = str_replace(ID, "^_|_$", ""),  #remove underscores
+    
+    #assign trial numbers based on MonthDay
+    Trial_number = dense_rank(MonthDay),  
+    Trial = paste0("Trial ", Trial_number)  
   ) %>%
   select(Name, ID, Year, MonthDay, Trial, everything())
 
-#now merge the column name to get unique names
-#define the values to ignore
-ignore_values <- c("Species", "NA", "Trial NA", "MS1")
 
-#new column names
+# Part 3 -------
+#now merge the column name to get unique names
+
+#define the values to ignore
+ignore_values <- c("Species", "NA", "Trial NA", "MS1") 
 new_colnames <- names(df_data_cleaned)
 
 #loop through each column index
@@ -70,10 +77,9 @@ for (i in seq_along(names(df_data_cleaned))) {
 
 #assign the new names
 colnames(df_data_cleaned) <- new_colnames
-#remove first row after merging 
-df_data_cleaned <- df_data_cleaned[-1, ]
-df_data_cleaned
+#remove first row after merging
+df_data_cleaned <- df_data_cleaned[-1, ] 
 
+#write new CSV
+write_csv(df_data_cleaned, "/Users/marcinebessire/Desktop/project/cleaned_data_fixed_2024.csv")
 
-#write new csv
-write_csv(df_data_cleaned, "/Users/marcinebessire/Desktop/project/cleaned_data_2024.csv")

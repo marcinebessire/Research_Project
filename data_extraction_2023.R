@@ -48,7 +48,9 @@ df_data_cleaned <- df_data %>%
   ) %>%
   select(Name, ID, Year, MonthDay, Trial, everything())
 
+# Part 3 -------
 #now merge the column name to get unique names
+
 #define the values to ignore
 ignore_values <- c("Species", "NA", "Trial NA", "MS1")
 
@@ -70,7 +72,6 @@ for (i in seq_along(names(df_data_cleaned))) {
 colnames(df_data_cleaned) <- new_colnames
 #remove first row after merging 
 df_data_cleaned <- df_data_cleaned[-1, ]
-df_data_cleaned
 
 
 #write new csv
