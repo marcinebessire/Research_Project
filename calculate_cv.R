@@ -49,24 +49,24 @@ print(cv_results_2023)
 print(cv_results_2024)
 
 # Part 2 -----
-# Remove columns with CV > 15-20%
+# Remove columns with CV < 20%
 
 #load CV files an cleaned data files
 
 #2023
 cv_file_2023 <- "/Users/marcinebessire/Desktop/project/CV_results_2023.csv"
-data_file_2023 <- "/Users/marcinebessire/Desktop/project/cleaned_data_2023.csv"
+cleaned_data_file_2023 <- "/Users/marcinebessire/Desktop/project/cleaned_data_2023.csv"
 
 #2024
 cv_file_2024 <- "/Users/marcinebessire/Desktop/project/CV_results_2024.csv"
-data_file_2024 <- "/Users/marcinebessire/Desktop/project/cleaned_data_2024.csv"
+cleaned_data_file_2024 <- "/Users/marcinebessire/Desktop/project/cleaned_data_2024.csv"
 
 #function to filter CV 15-20% and return columns names 
 filter_cv_columns <- function(cv_file, year){
   #load CV table
   cv_df <- read_csv(cv_file)
   
-  #filter CV table wiht threshold 20%
+  #filter CV table with threshold 20%
   filtered_cv_df <- cv_df %>%
     filter(cv_df$`CV [%]` < 20) #filters out values greater than 20
   
@@ -83,6 +83,38 @@ filtered_columns_2023 <- filter_cv_columns(cv_file_2023, "2023")
 #process data of 2023
 filtered_columns_2024 <- filter_cv_columns(cv_file_2024, "2024")
 
-#output of filtering CV 2023: before 314, after fitlering wiht 20% 69 and with 15% 15 => kept 20%
-#output of filtering CV 2024: before 660, after fitlering wiht 20% 77 and with 15% 27 => kept 20%
+#output of filtering CV 2023: before 314, after filtering with 20% 68 and with 15% 14 => kept 20%
+#output of filtering CV 2024: before 660, after filtering with 20% 76 and with 15% 26 => kept 20%
+
+# Part 3 -----
+# Extract columns with CV < 20% in cleaned data files based on name
+
+filter_data_by_columns <- function(cleaned_data_file, filtered_columns, year){
+  #load cleaned dataset 
+  cleaned_df <- read_csv(cleaned_data_file)
+  
+  #select again metadata columns 
+  metadata_columns <- c("Name", "ID", "Year", "MonthDay", "Trial")
+  
+  #find names that match between filtered and clenead data
+  matching_columns <- intersect (filtered_columns, colnames(cleaned_df))
+  
+  #for the output keep only metadata (as information) and selected columns from CV filtering
+  filtered_data_df <- cleaned_df %>%
+    select(all_of(metadata_columns), all_of(matching_columns))
+  
+  #save output
+  output_path <- paste0("/Users/marcinebessire/Desktop/project/Filtered_Data_", year, ".csv")
+  write_csv(filtered_data_df, output_path)
+  
+  #return the filtered dataset
+  return(filtered_data_df)
+  
+}
+
+#process data for 2023
+filtered_data_2023 <- filter_data_by_columns(cleaned_data_file_2023, filtered_columns_2023, "2023") #should be 5 + 68 = 73 (correct)
+#process data for 2024
+filtered_data_2024 <- filter_data_by_columns(cleaned_data_file_2024, filtered_columns_2024, "2024") #should be 5 + 76 = 81 (correct)
+
 
