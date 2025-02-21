@@ -1,5 +1,6 @@
 # Load required library
 library(tidyverse)
+library(ggplot2)
 
 # Part 1 ------
 # Perform Half-min imputation
@@ -82,5 +83,48 @@ output_file23 <- "/Users/marcinebessire/Desktop/project/Summary_Statistics_HalfM
 write_csv(summary_comparison23, output_file23)
 output_file24 <- "/Users/marcinebessire/Desktop/project/Summary_Statistics_HalfMin_24.csv"
 write_csv(summary_comparison24, output_file24)
+
+# Part 3 -----
+# Visualization of original and imputed data 
+
+#for 2023
+#reshape data for plotting
+plot_data <- data_2023 %>%
+  select(all_of(cols_with_na_23)) %>%
+  pivot_longer(everything(), names_to = "Variable", values_to = "Value") %>%
+  mutate(Dataset = "Original") %>%
+  bind_rows(
+    imputed_data_23 %>%
+      select(all_of(cols_with_na_23)) %>%
+      pivot_longer(everything(), names_to = "Variable", values_to = "Value") %>%
+      mutate(Dataset = "Imputed")
+  )
+
+# Boxplot Comparison
+ggplot(plot_data, aes(x = Dataset, y = Value, fill = Dataset)) +
+  geom_boxplot() +
+  facet_wrap(~Variable, scales = "free") +
+  theme_minimal() +
+  labs(title = "Boxplot: Original vs Imputed", x = "Dataset", y = "Value")
+
+#for 2024
+#reshape data for plotting
+plot_data <- data_2024 %>%
+  select(all_of(cols_with_na_24)) %>%
+  pivot_longer(everything(), names_to = "Variable", values_to = "Value") %>%
+  mutate(Dataset = "Original") %>%
+  bind_rows(
+    imputed_data_24 %>%
+      select(all_of(cols_with_na_24)) %>%
+      pivot_longer(everything(), names_to = "Variable", values_to = "Value") %>%
+      mutate(Dataset = "Imputed")
+  )
+
+# Boxplot Comparison
+ggplot(plot_data, aes(x = Dataset, y = Value, fill = Dataset)) +
+  geom_boxplot() +
+  facet_wrap(~Variable, scales = "free") +
+  theme_minimal() +
+  labs(title = "Boxplot: Original vs Imputed", x = "Dataset", y = "Value")
 
 
