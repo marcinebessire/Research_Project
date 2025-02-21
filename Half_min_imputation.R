@@ -39,36 +39,48 @@ cols_with_na_23 <- colnames(data_2023)[colSums(is.na(data_2023)) > 0]
 cols_with_na_24 <- colnames(data_2024)[colSums(is.na(data_2024)) > 0]
 
 #function to compute summary statistics
-compute_stats <- function(df, dataset_name,imputed_columns){
-  df %>%
+compute_stats <- function(original_df, imputed_df, imputed_columns){
+  #original data
+  stats_original <- original_df %>%
     select(all_of(imputed_columns)) %>%
-    summarise(
-      across(everything(), list(
-        Median = ~median(.x, na.rm = TRUE),
-        Mean = ~mean(.x, na.rm = TRUE),
-        SD = ~sd(.x, na.rm = TRUE)
-      ))
-    ) %>%
-    pivot_longer(cols = everything(), names_to = "Statistic", values_to = "Value") %>%
-    mutate(Dataset = dataset_name) %>%
-    pivot_wider(names_from = Statistic, values_from = Value) %>%
+    summarise(across(everything(), list(
+      Median = ~median(.x, na.rm = TRUE),
+      Mean = ~mean(.x, na.rm = TRUE),
+      SD = ~sd(.x, na.rm = TRUE)
+    ))) %>%
+    mutate(Dataset = "Original") %>%
     relocate(Dataset)
+  
+  #imputed data
+  stats_imputed <- imputed_df %>%
+    select(all_of(imputed_columns)) %>%
+    summarise(across(everything(), list(
+      Median = ~median(.x, na.rm = TRUE),
+      Mean = ~mean(.x, na.rm = TRUE),
+      SD = ~sd(.x, na.rm = TRUE)
+    ))) %>%
+    mutate(Dataset = "Imputed") %>%
+    relocate(Dataset)
+  
+  #calculate % change ((imputed-original)/orignal) * 100
+  stats_change <- stats_original
+  stats_change[,-1] <- ((stats_imputed[,-1] - stats_original[,-1])/stats_original[,-1]) * 100
+  stats_change$Dataset <- "% Change"
+  
+  final_stats <- bind_rows(stats_original, stats_imputed, stats_change)
+  
+  return(final_stats)
+  
 }
 
 #compute statistics
-summary_original23 <- compute_stats(data_2023, "Original",cols_with_na_23)
-summary_original24 <- compute_stats(data_2024, "Original",cols_with_na_24)
-summary_imputed23 <- compute_stats(imputed_data_23, "Imputed",cols_with_na_23)
-summary_imputed24 <- compute_stats(imputed_data_24, "Imputed",cols_with_na_24)
-
-#combine results
-summary_comparison23 <- bind_rows(summary_original23, summary_imputed23)
-summary_comparison24 <- bind_rows(summary_original24, summary_imputed24)
+summary_comparison23 <- compute_stats(data_2023, imputed_data_23, cols_with_na_23)
+summary_comparison24 <- compute_stats(data_2024, imputed_data_24, cols_with_na_24)
 
 #save csv 
 output_file23 <- "/Users/marcinebessire/Desktop/project/Summary_Statistics_HalfMin_23.csv"
 write_csv(summary_comparison23, output_file23)
 output_file24 <- "/Users/marcinebessire/Desktop/project/Summary_Statistics_HalfMin_24.csv"
-write_csv(summary_comparison23, output_file24)
+write_csv(summary_comparison24, output_file24)
 
 
