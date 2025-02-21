@@ -34,37 +34,41 @@ imputed_data_24 <- half_min_imputation(data_2024, "2024")
 # Check Half-Min imputation 
 # by comparing the  mean median and standard deviation for and after imputation
 
-#find imputed column to later select for those 
-find_imputed_col <- function(orignal_data, imputed_data){
-  imputed_col <- names(orignal_data)[sapply(original_data, function(col) sum(is.na(col)) > 0)]
-  return(imputed_col)
+#identify columns with missing values for 2023 and 2024
+cols_with_na_23 <- colnames(data_2023)[colSums(is.na(data_2023)) > 0]
+cols_with_na_24 <- colnames(data_2024)[colSums(is.na(data_2024)) > 0]
+
+#function to compute summary statistics
+compute_stats <- function(df, dataset_name,imputed_columns){
+  df %>%
+    select(all_of(imputed_columns)) %>%
+    summarise(
+      across(everything(), list(
+        Median = ~median(.x, na.rm = TRUE),
+        Mean = ~mean(.x, na.rm = TRUE),
+        SD = ~sd(.x, na.rm = TRUE)
+      ))
+    ) %>%
+    pivot_longer(cols = everything(), names_to = "Statistic", values_to = "Value") %>%
+    mutate(Dataset = dataset_name) %>%
+    pivot_wider(names_from = Statistic, values_from = Value) %>%
+    relocate(Dataset)
 }
 
-#function to compare statistics before and after imputation 
-compare_stats <- function(original_data, imputed_data){
-  stats_original <- original_data %>%
-    summarise(across(where(is.numeric), list(mean = ~mean(., na.rm = TRUE),
-                                             median = ~median(., na.rm = TRUE),
-                                             sd = ~sd(., na.rm = TRUE))))
-  
-  stats_imputed <- imputed_data %>%
-    summarise(across(where(is.numeric), list(mean = ~mean(., na.rm = TRUE),
-                                             median = ~median(., na.rm = TRUE),
-                                             sd = ~sd(., na.rm = TRUE))))
-  
-  stats_change <- stats_original - stats_imputed #check difference 
+#compute statistics
+summary_original23 <- compute_stats(data_2023, "Original",cols_with_na_23)
+summary_original24 <- compute_stats(data_2024, "Original",cols_with_na_24)
+summary_imputed23 <- compute_stats(imputed_data_23, "Imputed",cols_with_na_23)
+summary_imputed24 <- compute_stats(imputed_data_24, "Imputed",cols_with_na_24)
 
-  
-  return(stats_change)
-}
+#combine results
+summary_comparison23 <- bind_rows(summary_original23, summary_imputed23)
+summary_comparison24 <- bind_rows(summary_original24, summary_imputed24)
 
-#identify columns that had missing values 
-imputed_col23 <- find_imputed_col(data_2023, imputed_data_23)
-#Apply function to 2023
-stats_difference_23 <- compare_stats(data_2023, imputed_data_23)
-
-print(stats_difference_23)
-write_csv(stats_difference_23, "/Users/marcinebessire/Desktop/project/Stats_Change_HalfMin_2023.csv")
-
+#save csv 
+output_file23 <- "/Users/marcinebessire/Desktop/project/Summary_Statistics_HalfMin_23.csv"
+write_csv(summary_comparison23, output_file23)
+output_file24 <- "/Users/marcinebessire/Desktop/project/Summary_Statistics_HalfMin_24.csv"
+write_csv(summary_comparison23, output_file24)
 
 
