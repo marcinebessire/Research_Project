@@ -7,12 +7,12 @@ library(lubridate) #to handle dats better
 
 # Read the CSV file
 file_path <- "/Users/marcinebessire/Desktop/project/Result_out_MS2_filtered_20250217.csv"
-df_data <- read_csv(file_path, name_repair = "minimal") #keep duplicates
+df_data23 <- read_csv(file_path, name_repair = "minimal") #keep duplicates
 
 #change change duplicated names to .2, .3 etc. 
-name_count <- table(colnames(df_data)) #make table with count of each name
+name_count <- table(colnames(df_data23)) #make table with count of each name
 seen_count <- list() #to check how many names have appeared
-col_names <- colnames(df_data) #store current column names
+col_names <- colnames(df_data23) #store current column names
 
 #iterate through column names and rename duplicates
 for (i in seq_along(col_names)){
@@ -30,14 +30,14 @@ for (i in seq_along(col_names)){
 }
 
 #assign the new column names 
-colnames(df_data) <- col_names
+colnames(df_data23) <- col_names
 
 # Part 2 ------
 # Expand Name column 
 # Merge column name and first row of data to get unique names
 
 #extract Year and Date from the Name column
-df_data_cleaned <- df_data %>%
+df_data_cleaned23 <- df_data23 %>%
   mutate(
     ID = str_remove(Name, "^[^_]+_[^_]+_"), 
     Whole_Date = as.Date(str_extract(Name, "^\\d{8}"), format="%Y%m%d"), #YYYYMMDD
@@ -55,12 +55,12 @@ df_data_cleaned <- df_data %>%
 ignore_values <- c("Species", "NA", "Trial NA", "MS1")
 
 #new column names
-new_colnames <- names(df_data_cleaned)
+new_colnames <- names(df_data_cleaned23)
 
 #loop through each column index
-for (i in seq_along(names(df_data_cleaned))) {
-  first_row_val <- as.character(df_data_cleaned[1, i])  #get first row value
-  column_name <- names(df_data_cleaned)[i]  #get column name
+for (i in seq_along(names(df_data_cleaned23))) {
+  first_row_val <- as.character(df_data_cleaned23[1, i])  #get first row value
+  column_name <- names(df_data_cleaned23)[i]  #get column name
   
   #if the value is not in the ignore list, merge it with column name
   if (!(is.na(first_row_val) || first_row_val %in% ignore_values)) {
@@ -69,18 +69,25 @@ for (i in seq_along(names(df_data_cleaned))) {
 }
 
 #assign the new names
-colnames(df_data_cleaned) <- new_colnames
+colnames(df_data_cleaned23) <- new_colnames
 #remove first row after merging 
-df_data_cleaned <- df_data_cleaned[-1, ]
+df_data_cleaned23 <- df_data_cleaned23[-1, ]
 
 # Part 4 ------
 # Convert data columns (keeping metadata unchanged)
 info_cols <- c("Name", "ID", "Year", "MonthDay", "Trial") 
 
-df_data_cleaned <- df_data_cleaned %>%
+df_data_cleaned23 <- df_data_cleaned23 %>%
   mutate(across(-all_of(info_cols), ~ suppressWarnings(as.numeric(.))))  
 
+#replace NA and Inf values with empty strings before writing the CSV
+df_data_cleaned23 <- df_data_cleaned23 %>%
+  mutate(across(everything(), ~if_else(is.na(.) | is.infinite(.), "", as.character(.))))
+
+
+print(df_data_cleaned23)
+
 #write new csv
-write_csv(df_data_cleaned, "/Users/marcinebessire/Desktop/project/cleaned_data_2023.csv")
+write_csv(df_data_cleaned23, "/Users/marcinebessire/Desktop/project/cleaned_data_2023.csv")
 
 

@@ -19,7 +19,7 @@ remove_MV <- function(filtered_data, year){
   na_percent <- (na_counts/total_rows)*100 #percentage of NA
   
   #remove columns with more than 80% NA
-  columns_to_keep <- names(na_percent[na_percent <= 80]) #keep the one with less or equal 80% NA
+  columns_to_keep <- names(na_percent[na_percent <= 20]) #keep the one with less or equal 80% NA
   final_cleaned_data <- data_df %>% select(all_of(columns_to_keep))
   
   #save final dataset 
@@ -31,5 +31,6 @@ remove_MV <- function(filtered_data, year){
 }
 
 #process filtered data, call function
-final_fitlered_data_2023 <- remove_MV(file_path23, "2023")
+#after filtering CV and removing MV and 
+final_fitlered_data_2023 <- remove_MV(file_path23, "2023") 
 final_fitlered_data_2024 <- remove_MV(file_path24, "2024")

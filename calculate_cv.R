@@ -23,8 +23,16 @@ calculate_cv <- function(file_path){
   #keep only numeric columns
   df_numeric <- df_data %>% select(where(is.numeric))
   
+  #set inf values to NA (because are like missing values)
+  df_numeric[df_numeric == Inf | df_numeric == -Inf] <- NA 
+  
   #calculate coefficient of variance
-  cv_values <- sapply(df_data, function(x) (sd(x, na.rm = TRUE) / mean(x, na.rm = TRUE)) * 100)
+  cv_values <- sapply(df_numeric, function(x) {
+    if(all(is.na(x))) {
+      return(NA_real_)
+    }
+    (sd(x, na.rm = TRUE) / mean(x, na.rm = TRUE)) * 100
+  })
   
   #convert results into dataframe
   cv_df <- data.frame(Column = names(cv_values), CV_Percentage = cv_values)
@@ -42,11 +50,11 @@ calculate_cv <- function(file_path){
 
 #run function for both
 cv_results_2023 <- calculate_cv(file_path23)
-cv_results_2024 <- calculate_cv(file_path24)
+#cv_results_2024 <- calculate_cv(file_path24) do not do that
 
 #print results 
 print(cv_results_2023)
-print(cv_results_2024)
+#print(cv_results_2024)
 
 # Part 2 -----
 # Remove columns with CV < 20%
@@ -58,17 +66,17 @@ cv_file_2023 <- "/Users/marcinebessire/Desktop/project/CV_results_2023.csv"
 cleaned_data_file_2023 <- "/Users/marcinebessire/Desktop/project/cleaned_data_2023.csv"
 
 #2024
-cv_file_2024 <- "/Users/marcinebessire/Desktop/project/CV_results_2024.csv"
-cleaned_data_file_2024 <- "/Users/marcinebessire/Desktop/project/cleaned_data_2024.csv"
+#cv_file_2024 <- "/Users/marcinebessire/Desktop/project/CV_results_2024.csv"
+#cleaned_data_file_2024 <- "/Users/marcinebessire/Desktop/project/cleaned_data_2024.csv"
 
 #function to filter CV 15-20% and return columns names 
 filter_cv_columns <- function(cv_file, year){
   #load CV table
   cv_df <- read_csv(cv_file)
   
-  #filter CV table with threshold 20%
+  #filter CV table with threshold 45%
   filtered_cv_df <- cv_df %>%
-    filter(cv_df$`CV [%]` < 20) #filters out values greater than 20
+    filter(cv_df$`CV [%]` < 45) #filters out values greater than 20
   
   #save filter CV table 
   output_path <- paste0("/Users/marcinebessire/Desktop/project/Filtered_CV_", year, ".csv")
@@ -81,7 +89,7 @@ filter_cv_columns <- function(cv_file, year){
 filtered_columns_2023 <- filter_cv_columns(cv_file_2023, "2023")
 
 #process data of 2023
-filtered_columns_2024 <- filter_cv_columns(cv_file_2024, "2024")
+#filtered_columns_2024 <- filter_cv_columns(cv_file_2024, "2024")
 
 #output of filtering CV 2023: before 314, after filtering with 20% 68 and with 15% 14 => kept 20%
 #output of filtering CV 2024: before 660, after filtering with 20% 76 and with 15% 26 => kept 20%
@@ -115,6 +123,6 @@ filter_data_by_columns <- function(cleaned_data_file, filtered_columns, year){
 #process data for 2023
 filtered_data_2023 <- filter_data_by_columns(cleaned_data_file_2023, filtered_columns_2023, "2023") #should be 5 + 68 = 73 (correct)
 #process data for 2024
-filtered_data_2024 <- filter_data_by_columns(cleaned_data_file_2024, filtered_columns_2024, "2024") #should be 5 + 76 = 81 (correct)
+filtered_data_2024 <- df_data_cleaned24 #do not filter according to CV ! 
 
 
