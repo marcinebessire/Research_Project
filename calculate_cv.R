@@ -124,5 +124,7 @@ filter_data_by_columns <- function(cleaned_data_file, filtered_columns, year){
 filtered_data_2023 <- filter_data_by_columns(cleaned_data_file_2023, filtered_columns_2023, "2023") #should be 5 + 68 = 73 (correct)
 #process data for 2024
 filtered_data_2024 <- df_data_cleaned24 #do not filter according to CV ! 
+output_path24 <- paste0("/Users/marcinebessire/Desktop/project/Filtered_Data_2024.csv")
+write_csv(filtered_data_2024, output_path24)
 
 

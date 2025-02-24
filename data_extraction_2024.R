@@ -78,14 +78,18 @@ for (i in seq_along(names(df_data_cleaned24))) {
 #assign the new names
 colnames(df_data_cleaned24) <- new_colnames
 #remove first row after merging
-df_data_cleaned24 <- df_data_cleaned24[-1, ] 
+df_data_cleaned24 <- df_data_cleaned24 %>%
+  filter(Name != "Species")
 
 # Part 4 ------
 # Convert data columns (keeping metadata unchanged)
 info_cols <- c("Name", "ID", "Year", "MonthDay", "Trial") 
 
 df_data_cleaned24 <- df_data_cleaned24 %>%
-  mutate(across(-all_of(info_cols), ~ suppressWarnings(as.numeric(.))))  
+  mutate(across(-all_of(info_cols), ~ {
+    numeric_col <- suppressWarnings(as.numeric(.))
+    ifelse(is.infinite(numeric_col), NA, numeric_col) #put all Inf values to NA 
+  }))
 
 print(df_data_cleaned24)
 

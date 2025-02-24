@@ -1,9 +1,13 @@
 #load libraries required
 library(tidyverse)
 
-#load file path for 2023 and 2024 (fitlered data set)
-file_path23 <- "/Users/marcinebessire/Desktop/project/Filtered_Data_2023.csv"
-file_path24 <- "/Users/marcinebessire/Desktop/project/Filtered_Data_2024.csv"
+#load file path for 2023 and 2024 (filtered data set) for the one who where filtered
+#file_path23cv <- "/Users/marcinebessire/Desktop/project/Filtered_Data_2023.csv"
+#file_path24cv <- "/Users/marcinebessire/Desktop/project/Filtered_Data_2024.csv"
+
+#load data of 2023 and 2034 (cleaned data) for the one w/o fitlering CV
+file_path23 <- "/Users/marcinebessire/Desktop/project/cleaned_data_2023.csv"
+file_path24 <- "/Users/marcinebessire/Desktop/project/cleaned_data_2024.csv"
 
 #function to remove columns with >80% of NA
 remove_MV <- function(filtered_data, year){

@@ -6,8 +6,8 @@ library(ggplot2)
 # Perform Half-min imputation
 
 #load data 
-data_2023 <- read_csv("/Users/marcinebessire/Desktop/project/Final_Data_2023.csv")
-data_2024 <- read_csv("/Users/marcinebessire/Desktop/project/Final_Data_2024.csv")
+final_data_2023 <- read_csv("/Users/marcinebessire/Desktop/project/Final_Data_2023.csv")
+final_data_2024 <- read_csv("/Users/marcinebessire/Desktop/project/Final_Data_2024.csv")
 
 #function for Half-minimum imputation
 half_min_imputation <- function(df,year){
@@ -28,16 +28,16 @@ half_min_imputation <- function(df,year){
 }
 
 #apply function to data 
-imputed_data_23 <- half_min_imputation(data_2023, "2023")
-imputed_data_24 <- half_min_imputation(data_2024, "2024")
+imputed_data_23 <- half_min_imputation(final_data_2023, "2023")
+imputed_data_24 <- half_min_imputation(final_data_2024, "2024")
 
 # Part 2 ----
 # Check Half-Min imputation 
 # by comparing the  mean median and standard deviation for and after imputation
 
 #identify columns with missing values for 2023 and 2024
-cols_with_na_23 <- colnames(data_2023)[colSums(is.na(data_2023)) > 0]
-cols_with_na_24 <- colnames(data_2024)[colSums(is.na(data_2024)) > 0]
+cols_with_na_23 <- colnames(final_data_2023)[colSums(is.na(final_data_2023)) > 0]
+cols_with_na_24 <- colnames(final_data_2024)[colSums(is.na(final_data_2024)) > 0]
 
 #function to compute summary statistics
 compute_stats <- function(original_df, imputed_df, imputed_columns){
@@ -75,8 +75,8 @@ compute_stats <- function(original_df, imputed_df, imputed_columns){
 }
 
 #compute statistics
-summary_comparison23 <- compute_stats(data_2023, imputed_data_23, cols_with_na_23)
-summary_comparison24 <- compute_stats(data_2024, imputed_data_24, cols_with_na_24)
+summary_comparison23 <- compute_stats(final_data_2023, imputed_data_23, cols_with_na_23)
+summary_comparison24 <- compute_stats(final_data_2024, imputed_data_24, cols_with_na_24)
 
 #save csv 
 output_file23 <- "/Users/marcinebessire/Desktop/project/Summary_Statistics_HalfMin_23.csv"
@@ -89,7 +89,7 @@ write_csv(summary_comparison24, output_file24)
 
 #for 2023
 #reshape data for plotting
-plot_data <- data_2023 %>%
+plot_data <- final_data_2023 %>%
   select(all_of(cols_with_na_23)) %>%
   pivot_longer(everything(), names_to = "Variable", values_to = "Value") %>%
   mutate(Dataset = "Original") %>%
@@ -109,7 +109,7 @@ ggplot(plot_data, aes(x = Dataset, y = Value, fill = Dataset)) +
 
 #for 2024
 #reshape data for plotting
-plot_data <- data_2024 %>%
+plot_data <- final_data_2024 %>%
   select(all_of(cols_with_na_24)) %>%
   pivot_longer(everything(), names_to = "Variable", values_to = "Value") %>%
   mutate(Dataset = "Original") %>%
