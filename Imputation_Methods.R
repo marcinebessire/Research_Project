@@ -19,10 +19,9 @@ final_data_2023 <- read_csv("/Users/marcinebessire/Desktop/project/Final_Data_20
 
 #Random Forest imputation
 RF_wrapper <- function(data, ...) {
-  numeric_data <- data %>% select(-c(Name, ID, Year, MonthDay, Trial)) #select only data (not metadata)
-  imputed_data <- missForest(numeric_data, ...)[[1]]
-  result <- bind_cols(data %>% select(Name, ID, Year, MonthDay, Trial), imputed_data)
-  return(result)
+  numeric_or_factor <- data %>% select(where(~ is.numeric(.x) || is.factor(.x)))
+  result <- missForest(numeric_or_factor, ...)[[1]]
+  return (result)
 }
 
 RF_data <- RF_wrapper(final_data_2023)

@@ -9,35 +9,63 @@ library(lubridate) #to handle dats better
 file_path <- "/Users/marcinebessire/Desktop/project/Result_out_MS2_filtered_20250217.csv"
 df_data23 <- read_csv(file_path, name_repair = "minimal") #keep duplicates
 
-#change change duplicated names to .2, .3 etc. 
-name_count <- table(colnames(df_data23)) #make table with count of each name
-seen_count <- list() #to check how many names have appeared
-col_names <- colnames(df_data23) #store current column names
+# #change change duplicated names to .2, .3 etc. 
+# name_count <- table(colnames(df_data23)) #make table with count of each name
+# seen_count <- list() #to check how many names have appeared
+# col_names <- colnames(df_data23) #store current column names
+# 
+# #iterate through column names and rename duplicates
+# for (i in seq_along(col_names)){
+#   name <- col_names[i]
+#   
+#   #check if there are duplicates
+#   if (name_count[name] > 1){
+#     if (!name %in% names(seen_count)){
+#       seen_count[[name]] <- 1 #because first occurrence, keep original
+#     } else { #if not first occurence update the duplication
+#       seen_count[[name]] <- seen_count[[name]] + 1 #increment
+#       col_names[i] <- paste0(name,".", seen_count[[name]]) #append the seen count
+#     }
+#   } 
+# }
+# 
+# #assign the new column names 
+# colnames(df_data23) <- col_names
 
-#iterate through column names and rename duplicates
-for (i in seq_along(col_names)){
-  name <- col_names[i]
+# Part 2 -------
+#now merge the column name to get unique names
+
+#make a copy firs
+df_data23_copy <- df_data23
+
+#define the values to ignore
+ignore_values <- c("Species", "NA", "Trial NA", "MS1")
+
+#new column names
+new_colnames <- names(df_data23_copy)
+
+#loop through each column index
+for (i in seq_along(names(df_data23_copy))) {
+  first_row_val <- as.character(df_data23_copy[1, i])  #get first row value
+  column_name <- names(df_data23_copy)[i]  #get column name
   
-  #check if there are duplicates
-  if (name_count[name] > 1){
-    if (!name %in% names(seen_count)){
-      seen_count[[name]] <- 1 #because first occurrence, keep original
-    } else { #if not first occurence update the duplication
-      seen_count[[name]] <- seen_count[[name]] + 1 #increment
-      col_names[i] <- paste0(name,".", seen_count[[name]]) #append the seen count
-    }
-  } 
+  #if the value is not in the ignore list, merge it with column name
+  if (!(is.na(first_row_val) || first_row_val %in% ignore_values)) {
+    new_colnames[i] <- paste0(column_name, "_", first_row_val)
+  }
 }
 
-#assign the new column names 
-colnames(df_data23) <- col_names
+#assign the new names
+colnames(df_data23_copy) <- new_colnames
+#remove first row after merging 
+df_data23_copy <- df_data23_copy[-1, ]
 
-# Part 2 ------
+# Part 3 ------
 # Expand Name column 
 # Merge column name and first row of data to get unique names
 
 #extract Year and Date from the Name column
-df_data_cleaned23 <- df_data23 %>%
+df_data_cleaned23 <- df_data23_copy %>%
   mutate(
     ID = str_remove(Name, "^[^_]+_[^_]+_"), 
     Whole_Date = as.Date(str_extract(Name, "^\\d{8}"), format="%Y%m%d"), #YYYYMMDD
@@ -48,32 +76,7 @@ df_data_cleaned23 <- df_data23 %>%
   ) %>%
   select(Name, ID, Year, MonthDay, Trial, everything(), -Whole_Date, -Trial_number)
 
-# Part 3 -------
-#now merge the column name to get unique names
-
-#define the values to ignore
-ignore_values <- c("Species", "NA", "Trial NA", "MS1")
-
-#new column names
-new_colnames <- names(df_data_cleaned23)
-
-#loop through each column index
-for (i in seq_along(names(df_data_cleaned23))) {
-  first_row_val <- as.character(df_data_cleaned23[1, i])  #get first row value
-  column_name <- names(df_data_cleaned23)[i]  #get column name
-  
-  #if the value is not in the ignore list, merge it with column name
-  if (!(is.na(first_row_val) || first_row_val %in% ignore_values)) {
-    new_colnames[i] <- paste0(column_name, "_", first_row_val)
-  }
-}
-
-#assign the new names
-colnames(df_data_cleaned23) <- new_colnames
-#remove first row after merging 
-df_data_cleaned23 <- df_data_cleaned23[-1, ]
-
-# Part 4 ------
+# Part 3 ------
 # Convert data columns (keeping metadata unchanged)
 info_cols <- c("Name", "ID", "Year", "MonthDay", "Trial") 
 

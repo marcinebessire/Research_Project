@@ -8,35 +8,61 @@ library(lubridate) #to handle dates better
 # Read the CSV file
 file_path <- "/Users/marcinebessire/Desktop/project/Result_out_MS2_filtered_20250218.csv"
 df_data24 <- read_csv(file_path, name_repair = "minimal") # Keep duplicate names
+# 
+# #change change duplicated names to .2, .3 etc.
+# name_count <- table(colnames(df_data24)) 
+# seen_count <- list() 
+# col_names <- colnames(df_data24)
+# 
+# #iterate through column names and rename duplicates
+# for (i in seq_along(col_names)){
+#   name <- col_names[i]
+#   
+#   #check if there are duplicates
+#   if (name_count[name] > 1){
+#     if (!name %in% names(seen_count)){
+#       seen_count[[name]] <- 1 #because first occurrence, keep original
+#     } else { #if not first occurence update the duplication
+#       seen_count[[name]] <- seen_count[[name]] + 1 #increment
+#       col_names[i] <- paste0(name,".", seen_count[[name]]) #append the seen count
+#     }
+#   } 
+# }
+# 
+# #assign the new column names 
+# colnames(df_data24) <- col_names
 
-#change change duplicated names to .2, .3 etc.
-name_count <- table(colnames(df_data24)) 
-seen_count <- list() 
-col_names <- colnames(df_data24)
+# Part 3 -------
+#now merge the column name to get unique names
+#make copy 
+df_data_24_copy <- df_data24
+#define the values to ignore
+ignore_values <- c("Species", "NA", "Trial NA", "MS1") 
+new_colnames <- names(df_data_24_copy)
 
-#iterate through column names and rename duplicates
-for (i in seq_along(col_names)){
-  name <- col_names[i]
+#loop through each column index
+for (i in seq_along(names(df_data_24_copy))) {
+  first_row_val <- as.character(df_data_24_copy[1, i])  #get first row value
+  column_name <- names(df_data_24_copy)[i]  #get column name
   
-  #check if there are duplicates
-  if (name_count[name] > 1){
-    if (!name %in% names(seen_count)){
-      seen_count[[name]] <- 1 #because first occurrence, keep original
-    } else { #if not first occurence update the duplication
-      seen_count[[name]] <- seen_count[[name]] + 1 #increment
-      col_names[i] <- paste0(name,".", seen_count[[name]]) #append the seen count
-    }
-  } 
+  #if the value is not in the ignore list, merge it with column name
+  if (!(is.na(first_row_val) || first_row_val %in% ignore_values)) {
+    new_colnames[i] <- paste0(column_name, "_", first_row_val)
+  }
 }
 
-#assign the new column names 
-colnames(df_data24) <- col_names
+#assign the new names
+colnames(df_data_24_copy) <- new_colnames
+#remove first row after merging
+df_data_24_copy <- df_data_24_copy %>%
+  filter(Name != "Species")
 
-# Part 2 ------
+
+# Part 3 ------
 # Expand Name column 
 # Merge column name and first row of data to get unique names
 
-df_data_cleaned24 <- df_data24 %>%
+df_data_cleaned24 <- df_data_24_copy %>%
   mutate( #mutate to create or edit existing columns in a dataframe
     #extract date from anywhere in the Name column (because not the same)
     Whole_Date = str_extract(Name, "\\d{8}"), #\\d for matching any digits
@@ -56,30 +82,6 @@ df_data_cleaned24 <- df_data24 %>%
   ) %>%
   select(Name, ID, Year, MonthDay, Trial, everything(),-Whole_Date, -Trial_number)
 
-
-# Part 3 -------
-#now merge the column name to get unique names
-
-#define the values to ignore
-ignore_values <- c("Species", "NA", "Trial NA", "MS1") 
-new_colnames <- names(df_data_cleaned24)
-
-#loop through each column index
-for (i in seq_along(names(df_data_cleaned24))) {
-  first_row_val <- as.character(df_data_cleaned24[1, i])  #get first row value
-  column_name <- names(df_data_cleaned24)[i]  #get column name
-  
-  #if the value is not in the ignore list, merge it with column name
-  if (!(is.na(first_row_val) || first_row_val %in% ignore_values)) {
-    new_colnames[i] <- paste0(column_name, "_", first_row_val)
-  }
-}
-
-#assign the new names
-colnames(df_data_cleaned24) <- new_colnames
-#remove first row after merging
-df_data_cleaned24 <- df_data_cleaned24 %>%
-  filter(Name != "Species")
 
 # Part 4 ------
 # Convert data columns (keeping metadata unchanged)

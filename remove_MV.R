@@ -12,7 +12,7 @@ file_path24 <- "/Users/marcinebessire/Desktop/project/cleaned_data_2024.csv"
 #function to remove columns with >80% of NA
 remove_MV <- function(filtered_data, year){
   #load filtered data
-  data_df <- read.csv(filtered_data)
+  data_df <- read.csv(filtered_data, check.names = FALSE)
   
   #select metadata column 
   metadata_columns <- c("Name", "ID", "Year", "MonthDay", "Trial")
@@ -39,3 +39,18 @@ remove_MV <- function(filtered_data, year){
 final_fitlered_data_2023 <- remove_MV(file_path23, "2023") 
 final_fitlered_data_2024 <- remove_MV(file_path24, "2024")
 
+#Check how many column names are the same in both datasets and which ones
+
+#columns to exclude
+exclude_cols <- c('Name', 'ID', 'Year', 'MonthDay', 'Trial')
+
+#identify same columns
+cols_df1 <- setdiff(colnames(final_fitlered_data_2023), exclude_cols)
+cols_df2 <- setdiff(colnames(final_fitlered_data_2024), exclude_cols)
+
+#find common columns
+common_cols <- intersect(cols_df1, cols_df2)
+
+# Output results
+cat("Number of common columns:", length(common_cols), "\n")
+cat("Common columns:", paste(common_cols, collapse=", "))
