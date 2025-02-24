@@ -54,7 +54,7 @@ df_data_cleaned24 <- df_data24 %>%
     Trial_number = dense_rank(MonthDay),  
     Trial = paste0("Trial ", Trial_number)  
   ) %>%
-  select(Name, ID, Year, MonthDay, Trial, everything())
+  select(Name, ID, Year, MonthDay, Trial, everything(),-Whole_Date, -Trial_number)
 
 
 # Part 3 -------

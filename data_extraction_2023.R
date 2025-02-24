@@ -46,7 +46,7 @@ df_data_cleaned23 <- df_data23 %>%
     Trial_number = dense_rank(MonthDay), #rank based on MonthDay
     Trial = paste0("Trial ", Trial_number), #Set Trial number for each Trial
   ) %>%
-  select(Name, ID, Year, MonthDay, Trial, everything())
+  select(Name, ID, Year, MonthDay, Trial, everything(), -Whole_Date, -Trial_number)
 
 # Part 3 -------
 #now merge the column name to get unique names

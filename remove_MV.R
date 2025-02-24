@@ -38,3 +38,4 @@ remove_MV <- function(filtered_data, year){
 #after filtering CV and removing MV and 
 final_fitlered_data_2023 <- remove_MV(file_path23, "2023") 
 final_fitlered_data_2024 <- remove_MV(file_path24, "2024")
+
