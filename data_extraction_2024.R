@@ -95,7 +95,17 @@ df_data_cleaned24 <- df_data_cleaned24 %>%
 
 print(df_data_cleaned24)
 
+df_data_cleaned24 <- df_data_cleaned24 %>%
+  arrange(MonthDay) # Orders the data by Trial number
+
 #write new CSV
 write_csv(df_data_cleaned24, "/Users/marcinebessire/Desktop/project/cleaned_data_2024.csv")
 
+# Part 5 ----
+# *optional* remove all the "new" ones (new chip used) started from 09-10 (aka starting from Trial 6)
+cut_df_data_cleaned24 <- df_data_cleaned24 %>%
+  filter(MonthDay < "09-10") 
+
+#save the cut dataset
+write_csv(cut_df_data_cleaned24, "/Users/marcinebessire/Desktop/project/cut_cleaned_data_2024.csv")
 
