@@ -1,5 +1,7 @@
 # Load required library
 library(tidyverse)
+library(ggplot2)
+library(corrplot)
 
 # Part 1 ------
 # Perform Half-min imputation
@@ -59,7 +61,7 @@ final_col <- c(exclude_cols, common_cols)
 half_min_23 <- imputed_data_23 %>% select(all_of(final_col))
 half_min_24 <- imputed_data_24 %>% select(all_of(final_col))
 
-#save common imputed metabolits to new file
+#save common imputed metabolites to new file
 write_csv(half_min_23, "/Users/marcinebessire/Desktop/project/Common_Half_Min_Imputation23.csv")
 write_csv(half_min_24, "/Users/marcinebessire/Desktop/project/Common_Half_Min_Imputation24.csv")
 
@@ -176,52 +178,68 @@ significant_results_ttest <- results_ttest %>%
 
 print(significant_results_ttest)
 
+# Part 6 -------
+# Correlation Coefficient for each year 
 
-# Part  6 --------
-# Check Half-Min imputation 
-# by comparing the  mean median and standard deviation for and after imputation
+#load CV data for both years 
+cv_res23 <- read.csv("/Users/marcinebessire/Desktop/project/Common_CV_results23.csv", check.names = FALSE)
+cv_res24 <- read.csv("/Users/marcinebessire/Desktop/project/Common_CV_results24.csv", check.names = FALSE)
 
-# #identify columns with missing values for 2023 and 2024
-# cols_with_na_23 <- colnames(final_data_2023)[colSums(is.na(final_data_2023)) > 0]
-# cols_with_na_24 <- colnames(final_data_2024)[colSums(is.na(final_data_2024)) > 0]
-# 
-# #function to compute summary statistics
-# compute_stats <- function(original_df, imputed_df, imputed_columns){
-#   #original data
-#   stats_original <- original_df %>%
-#     select(all_of(imputed_columns)) %>%
-#     summarise(across(everything(), list(
-#       Median = ~median(.x, na.rm = TRUE),
-#       Mean = ~mean(.x, na.rm = TRUE),
-#       SD = ~sd(.x, na.rm = TRUE)
-#     ))) %>%
-#     mutate(Dataset = "Original") %>%
-#     relocate(Dataset)
-#   
-#   #imputed data
-#   stats_imputed <- imputed_df %>%
-#     select(all_of(imputed_columns)) %>%
-#     summarise(across(everything(), list(
-#       Median = ~median(.x, na.rm = TRUE),
-#       Mean = ~mean(.x, na.rm = TRUE),
-#       SD = ~sd(.x, na.rm = TRUE)
-#     ))) %>%
-#     mutate(Dataset = "Imputed") %>%
-#     relocate(Dataset)
-#   
-#   #calculate % change ((imputed-original)/orignal) * 100
-#   stats_change <- stats_original
-#   stats_change[,-1] <- ((stats_imputed[,-1] - stats_original[,-1])/stats_original[,-1]) * 100
-#   stats_change$Dataset <- "% Change"
-#   
-#   final_stats <- bind_rows(stats_original, stats_imputed, stats_change)
-#   
-#   return(final_stats)
-#   
-# }
-# 
-# #compute statistics
-# summary_comparison23 <- compute_stats(final_data_2023, imputed_data_23, cols_with_na_23)
-# summary_comparison24 <- compute_stats(final_data_2024, imputed_data_24, cols_with_na_24)
+#t-test results (p-values)
+df_ttest <- results_ttest
+
+#rename columns for clarity 
+colnames(cv_res23) <- c("Metabolite", "CV [%]")
+colnames(cv_res24) <- c("Metabolite", "CV [%]")
+
+#merge dataframe by metabolites
+merged_23 <- merge(cv_res23, df_ttest, by = "Metabolite")
+merged_24 <- merge(cv_res24, df_ttest, by = "Metabolite")
+
+#calculate correlation coefficient between CV and adjusted p-value 
+#2023
+cor_23 <- cor(merged_23$`CV [%]`, merged_23$adj_p_value, method = "pearson")
+print(paste("Correlation coefficient for 2023:", cor_23)) #-0.0293
+#2024
+cor_24 <- cor(merged_24$`CV [%]`, merged_24$adj_p_value, method = "pearson")
+print(paste("Correlation coefficient for 2024:", cor_24)) #-0.0837
+
+#now plot the data of 2023
+ggplot(merged_23, aes(x = `CV [%]`, y = adj_p_value)) +
+  geom_point() +
+  labs(title = "2023: CV vs Adjusted P-Value",
+       x = "CV [%]", 
+       y = "Adjusted P-Value") +
+  theme_minimal()
+
+#now plot the data of 2024
+ggplot(merged_24, aes(x = `CV [%]`, y = adj_p_value)) +
+  geom_point() +
+  labs(title = "2023: CV vs Adjusted P-Value",
+       x = "CV [%]", 
+       y = "Adjusted P-Value") +
+  xlim(0.0, 50) +
+  ylim(0.0, 0.01)
+  theme_minimal()
+
+#measure Spearman rank correlation (monotinic relationship)  
+cor_23_spearman <- cor(merged_23$CV, merged_23$adj_p_value, method = "spearman")
+cor_24_spearman <- cor(merged_24$CV, merged_24$adj_p_value, method = "spearman")
+print(paste("Spearman Correlation for 2023:", cor_23_spearman)) #-0.105
+print(paste("Spearman Correlation for 2024:", cor_24_spearman)) #-0.05
+
+#check if outliers impact the relationship
+threshold_23 <- quantile(merged_23$`CV [%]`, 0.95)  #95th percentile fitlers top 5% of CV values
+threshold_24 <- quantile(merged_24$`CV [%]`, 0.95)  
+
+filtered_23 <- merged_23 %>% filter(`CV [%]` < threshold_23)
+filtered_24 <- merged_24 %>% filter(`CV [%]` < threshold_24)
+
+cor_23_filtered <- cor(filtered_23$`CV [%]`, filtered_23$adj_p_value, method = "pearson")
+cor_24_filtered <- cor(filtered_24$`CV [%]`, filtered_24$adj_p_value, method = "pearson")
+
+print(paste("Filtered Correlation for 2023:", cor_23_filtered)) #-0.2676
+print(paste("Filtered Correlation for 2024:", cor_24_filtered)) #-0.2495
+
 
 

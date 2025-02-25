@@ -8,6 +8,10 @@ library(tidyverse)
 file_path23 <- "/Users/marcinebessire/Desktop/project/cleaned_data_2023.csv"
 file_path24 <- "/Users/marcinebessire/Desktop/project/cleaned_data_2024.csv"
 
+#load dataset 2023 adn 2024 for common metabolites (before imputation)
+common_path23 <- "/Users/marcinebessire/Desktop/project/Common_Metabolites23.csv"
+common_path24 <- "/Users/marcinebessire/Desktop/project/Common_Metabolites24.csv"
+
 #write function to caluclate cv for each numeric column in each file
 calculate_cv <- function(file_path){
   #read csv file
@@ -18,7 +22,7 @@ calculate_cv <- function(file_path){
   filedate <- str_extract(filename, "\\d{4}" ) #extract year
   
   #exclude non-data columns
-  df_data <- df %>% select(-c(Name, ID, Year, MonthDay, Trial, Whole_Date, Trial_number))
+  df_data <- df %>% select(-c(Name, ID, Year, MonthDay, Trial))
   
   #keep only numeric columns
   df_numeric <- df_data %>% select(where(is.numeric))
@@ -52,10 +56,13 @@ calculate_cv <- function(file_path){
 cv_results_2023 <- calculate_cv(file_path23)
 #cv_results_2024 <- calculate_cv(file_path24) do not do that
 
-#print results 
-print(cv_results_2023)
-#print(cv_results_2024)
+#run funciton for both common metabolites
+cv_results_common23 <- calculate_cv(common_path23)
+cv_results_common24 <- calculate_cv(common_path24)
 
+#save results to csv file 
+write_csv(cv_results_common23, "/Users/marcinebessire/Desktop/project/Common_CV_results23.csv")
+write_csv(cv_results_common24, "/Users/marcinebessire/Desktop/project/Common_CV_results24.csv")
 # Part 2 -----
 # Remove columns with CV < 20%
 
