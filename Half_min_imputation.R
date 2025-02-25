@@ -45,7 +45,7 @@ exclude_cols <- c('Name', 'ID', 'Year', 'MonthDay', 'Trial')
 
 #identify same columns
 cols_df1 <- setdiff(colnames(imputed_data_23), exclude_cols)
-#cols_df2 <- setdiff(colnames(imputed_data_24), exclude_cols)
+cols_df2 <- setdiff(colnames(imputed_data_24), exclude_cols)
 
 #find common columns
 common_cols <- intersect(cols_df1, cols_df2)
@@ -54,10 +54,15 @@ common_cols <- intersect(cols_df1, cols_df2)
 cat("Number of common columns:", length(common_cols), "\n") #84
 cat("Common columns:", paste(common_cols, collapse=", ")) 
 
-#make new dataframes for each year with those 84 columns + metadata
+#make new dataframe for each year with those 84 columns + metadata
 final_col <- c(exclude_cols, common_cols)
 half_min_23 <- imputed_data_23 %>% select(all_of(final_col))
 half_min_24 <- imputed_data_24 %>% select(all_of(final_col))
+
+#save common imputed metabolits to new file
+write_csv(half_min_23, "/Users/marcinebessire/Desktop/project/Common_Half_Min_Imputation23.csv")
+write_csv(half_min_24, "/Users/marcinebessire/Desktop/project/Common_Half_Min_Imputation24.csv")
+
 
 # Part 3 --------
 # Wilcoxon rank-sum test (for independent data)
