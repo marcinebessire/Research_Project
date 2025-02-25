@@ -100,7 +100,7 @@ significant_results_ttest_RF <- results_ttest_RF %>%
   filter(adj_p_value < 0.05) %>% #usually 0.05 used 
   arrange(adj_p_value)
 
-print(significant_results_ttest_RF) #80 out of 84 were siginificant
+print(significant_results_ttest_RF) #80 out of 84 were significant
 
 #OOB (out of bag imputation error) is the normalized mean squared error (NMSE) => the lower the better
 #NMSE = 0 means perfect prediction
