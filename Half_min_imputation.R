@@ -242,4 +242,3 @@ print(paste("Filtered Correlation for 2023:", cor_23_filtered)) #-0.2676
 print(paste("Filtered Correlation for 2024:", cor_24_filtered)) #-0.2495
 
 
-
