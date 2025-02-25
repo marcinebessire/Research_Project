@@ -179,7 +179,7 @@ significant_results_ttest <- results_ttest %>%
 print(significant_results_ttest)
 
 # Part 6 -------
-# Correlation Coefficient for each year 
+# Correlation Coefficient for each year (between CV (values before imputation) and Metabolite after Half min Imputation)
 
 #load CV data for both years 
 cv_res23 <- read.csv("/Users/marcinebessire/Desktop/project/Common_CV_results23.csv", check.names = FALSE)

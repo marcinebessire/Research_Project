@@ -2,6 +2,9 @@
 library(missForest)
 library(dplyr)
 
+# Part 1 -------
+# Random Forest impputation of MV
+
 #load common metabolite dataframe (2023 and 2024) 
 data_23 <- read.csv("/Users/marcinebessire/Desktop/project/Common_Metabolites23.csv", check.names = FALSE)
 data_24 <- read.csv("/Users/marcinebessire/Desktop/project/Common_Metabolites24.csv", check.names = FALSE)
@@ -27,3 +30,74 @@ RF_data24 <- RF_imputation(numeric_24)
 #extract imputed data and save as df
 imputed_RF_23 <- as.data.frame(RF_data23$ximp)
 imputed_RF_24 <- as.data.frame(RF_data24$ximp)
+
+# Part 2 --------
+# Wilcoxon rank-sum test (for independent data)
+
+#get metabolite column names
+metabolite_cols <- colnames(imputed_RF_23)
+
+#dataframe for the results
+results_Wilcoxon_RF <- data.frame(
+  Metabolite = metabolite_cols,
+  p_value = numeric(length(metabolite_cols)),
+  statistic = numeric(length(metabolite_cols))
+)
+
+
+#loop through each metabolite and run Wilcoxon rank-sum test
+for (i in seq_along(metabolite_cols)) {
+  metabolite <- metabolite_cols[i]
+  
+  test_result <- wilcox.test(imputed_RF_23[[metabolite]], imputed_RF_24[[metabolite]], paired = FALSE, exact = FALSE)
+  
+  #save results to dataframe
+  results_Wilcoxon_RF$p_value[i] <- test_result$p.value
+  results_Wilcoxon_RF$statistic[i] <- test_result$statistic
+}
+
+
+#adjust p-value for multiple testing (Benjamini-Hochberg
+results_Wilcoxon_RF$adj_p_value <- p.adjust(results_Wilcoxon_RF$p_value, method = "BH")
+
+print(results_Wilcoxon_RF)
+
+#view significant metabolites with BH adjusted p-value < 0.05
+significant_results_Wilcoxon_RF <- results_Wilcoxon_RF %>% 
+  filter(adj_p_value < 0.05) %>% #usually 0.05 used 
+  arrange(adj_p_value)
+
+print(significant_results_Wilcoxon_RF) #82 out of 84 were significant 
+
+# Part 3 -------
+# Run unpaired t-test for each metabolite 
+#dataframe for the results
+results_ttest_RF <- data.frame(
+  Metabolite = metabolite_cols,
+  p_value = numeric(length(metabolite_cols)),
+  statistic = numeric(length(metabolite_cols))
+)
+
+#loop through each metabolite and run t-test for each metabolites
+for (i in seq_along(metabolite_cols)) {
+  metabolite <- metabolite_cols[i]
+  
+  #use Welchs test here (not same variance, to test H0 where two groups have equal mean)
+  test_result2 <- t.test(imputed_RF_23[[metabolite]], imputed_RF_24[[metabolite]], paired = FALSE, var.equal = FALSE)
+  
+  #save results to dataframe
+  results_ttest_RF$p_value[i] <- test_result2$p.value
+  results_ttest_RF$statistic[i] <- test_result2$statistic
+}
+
+#adjust p-value for multiple testing (Benjamini-Hochberg)
+results_ttest_RF$adj_p_value <- p.adjust(results_ttest_RF$p_value, method = "BH")
+
+print(results_ttest_RF)
+
+#view significant metabolites with BH adjusted p-value < 0.05
+significant_results_ttest_RF <- results_ttest_RF %>% 
+  filter(adj_p_value < 0.05) %>% #usually 0.05 used 
+  arrange(adj_p_value)
+
+print(significant_results_ttest_RF) #80 out of 84 were siginificant
