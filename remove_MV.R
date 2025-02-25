@@ -1,5 +1,11 @@
 #load libraries required
 library(tidyverse)
+library(dplyr)
+
+
+# Part 1 -------
+# Remove Missing Values 
+# Choose cutoff of 20%
 
 #load file path for 2023 and 2024 (filtered data set) for the one who where filtered
 #file_path23cv <- "/Users/marcinebessire/Desktop/project/Filtered_Data_2023.csv"
@@ -8,6 +14,7 @@ library(tidyverse)
 #load data of 2023 and 2034 (cleaned data) for the one w/o fitlering CV
 file_path23 <- "/Users/marcinebessire/Desktop/project/cleaned_data_2023.csv"
 file_path24 <- "/Users/marcinebessire/Desktop/project/cleaned_data_2024.csv"
+#cut_file_path24 <- "/Users/marcinebessire/Desktop/project/cut_cleaned_data_2024.csv"
 
 #function to remove columns with >80% of NA
 remove_MV <- function(filtered_data, year){
@@ -36,8 +43,9 @@ remove_MV <- function(filtered_data, year){
 
 #process filtered data, call function
 #after filtering CV and removing MV and 
-final_fitlered_data_2023 <- remove_MV(file_path23, "2023") 
-final_fitlered_data_2024 <- remove_MV(file_path24, "2024")
+final_filtered_data_2023 <- remove_MV(file_path23, "2023") 
+final_filtered_data_2024 <- remove_MV(file_path24, "2024")
+#final_cut_filtered_data_2024 <- remove_MV(cut_file_path24, "2024.2")
 
 #Check how many column names are the same in both datasets and which ones
 
@@ -45,12 +53,72 @@ final_fitlered_data_2024 <- remove_MV(file_path24, "2024")
 exclude_cols <- c('Name', 'ID', 'Year', 'MonthDay', 'Trial')
 
 #identify same columns
-cols_df1 <- setdiff(colnames(final_fitlered_data_2023), exclude_cols)
-cols_df2 <- setdiff(colnames(final_fitlered_data_2024), exclude_cols)
+cols_df1 <- setdiff(colnames(final_filtered_data_2023), exclude_cols)
+cols_df2 <- setdiff(colnames(final_filtered_data_2024), exclude_cols)
+#cols_df3 <- setdiff(colnames(final_cut_filtered_data_2024), exclude_cols) #for cut data
 
 #find common columns
-common_cols <- intersect(cols_df1, cols_df2)
+common_cols1 <- intersect(cols_df1, cols_df2)
+#common_cols2 <- intersect(cols_df1, cols_df3) #for cut data
 
-# Output results
-cat("Number of common columns:", length(common_cols), "\n")
-cat("Common columns:", paste(common_cols, collapse=", "))
+#output results
+cat("Number of common columns:", length(common_cols1), "\n") #84
+cat("Common columns:", paste(common_cols1, collapse=", "))
+ 
+#output results for cut data
+#cat("Number of common columns:", length(common_cols2), "\n") #19 for cut data
+#cat("Common columns:", paste(common_cols2, collapse=", "))
+
+#dataframe 
+final_col1 <- c(exclude_cols, common_cols1)
+#final_col2 <- c(exclude_cols, common_cols2)
+
+#make new dataframes for each year with those 84 columns + metadata
+common_metabolites_23 <- final_filtered_data_2023 %>% select(all_of(final_col1))
+common_metabolites_24 <- final_filtered_data_2024 %>% select(all_of(final_col1))
+
+#for cut data
+#common_metabolites_23_2 <- final_filtered_data_2023 %>% select(all_of(final_col2))
+#common_metabolites_24_2 <- final_filtered_data_2024 %>% select(all_of(final_col2))
+
+#save common data 
+write_csv(common_metabolites_23, "/Users/marcinebessire/Desktop/project/Common_Metabolites23.csv")
+write_csv(common_metabolites_24, "/Users/marcinebessire/Desktop/project/Common_Metabolites24.csv")
+
+#save common data for cut 2024
+#write_csv(common_metabolites_23_2, "/Users/marcinebessire/Desktop/project/Cut_Common_Metabolites23.csv")
+#write_csv(common_metabolites_24_2, "/Users/marcinebessire/Desktop/project/Cut_Common_Metabolites24.csv")
+
+# Part 2 ----
+# Asses normality of data with Shapiro-Wilk test
+
+#select only metabolite columns (starting from column 6)
+data_columns23 <- common_metabolites_23[, 6:ncol(common_metabolites_23)]
+data_columns24 <- common_metabolites_24[, 6:ncol(common_metabolites_24)]
+
+#2023
+lshap23 <- lapply(data_columns23, shapiro.test)
+lshap23[[1]] ## look at the first column results
+str(lshap23[[1]]) #check which test was performed
+lres23 <- sapply(lshap23, `[`, c("statistic","p.value")) #p-value for all objects 
+print(lres23)
+
+#count how many metabolites have p-values >= 0.05 (normally distributed)
+num_normal23 <- sum(lres23["p.value", ] >= 0.05)
+
+# Print the count
+cat("Number of normally distributed metabolites:", num_normal23, "\n")#gives 20 
+
+#2024
+lshap24 <- lapply(data_columns24, shapiro.test)
+lshap24[[1]] ## look at the first column results
+str(lshap24[[1]]) #check which test was performed
+lres24 <- sapply(lshap24, `[`, c("statistic","p.value")) #p-value for all objects 
+print(lres24)
+
+#count how many metabolites have p-values >= 0.05 (normally distributed)
+num_normal24 <- sum(lres24["p.value", ] >= 0.05)
+
+# Print the count
+cat("Number of normally distributed metabolites:", num_normal24, "\n") #gives 28
+
