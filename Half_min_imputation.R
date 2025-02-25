@@ -1,6 +1,5 @@
 # Load required library
 library(tidyverse)
-library(ggplot2)
 
 # Part 1 ------
 # Perform Half-min imputation
@@ -8,6 +7,10 @@ library(ggplot2)
 #load data 
 final_data_2023 <- read.csv("/Users/marcinebessire/Desktop/project/Final_Data_2023.csv", check.names = FALSE)
 final_data_2024 <- read.csv("/Users/marcinebessire/Desktop/project/Final_Data_2024.csv", check.names = FALSE)
+
+#imputation for cut 2024
+#cut_2024 <- read.csv("/Users/marcinebessire/Desktop/project/Cut_Common_Metabolites24.csv", check.names = FALSE)
+#cut_2023 <- read.csv("/Users/marcinebessire/Desktop/project/Cut_Common_Metabolites23.csv", check.names = FALSE)
 
 #function for Half-minimum imputation
 half_min_imputation <- function(df,year){
@@ -31,6 +34,9 @@ half_min_imputation <- function(df,year){
 imputed_data_23 <- half_min_imputation(final_data_2023, "2023")
 imputed_data_24 <- half_min_imputation(final_data_2024, "2024")
 
+#cut data
+#cut_imputed_data_23 <- half_min_imputation(cut_2023, "2023")
+#cut_imputed_data_24 <- half_min_imputation(cut_2024, "2024")
 
 # Part 2 ----
 # Make new df with the same column names (same metabolites for comparison)
@@ -39,7 +45,7 @@ exclude_cols <- c('Name', 'ID', 'Year', 'MonthDay', 'Trial')
 
 #identify same columns
 cols_df1 <- setdiff(colnames(imputed_data_23), exclude_cols)
-cols_df2 <- setdiff(colnames(imputed_data_24), exclude_cols)
+#cols_df2 <- setdiff(colnames(imputed_data_24), exclude_cols)
 
 #find common columns
 common_cols <- intersect(cols_df1, cols_df2)
@@ -50,12 +56,10 @@ cat("Common columns:", paste(common_cols, collapse=", "))
 
 #make new dataframes for each year with those 84 columns + metadata
 final_col <- c(exclude_cols, common_cols)
-
-#new dataframes with same metabolites
 half_min_23 <- imputed_data_23 %>% select(all_of(final_col))
 half_min_24 <- imputed_data_24 %>% select(all_of(final_col))
 
-# Part 3
+# Part 3 --------
 # Wilcoxon rank-sum test (for independent data)
 
 #select only metabolite columns (starting from column 6)
@@ -64,6 +68,7 @@ half_min_24_metabolites <- half_min_24[, 6:ncol(half_min_24)]
 
 #get metabolite column names
 metabolite_cols <- colnames(half_min_23_metabolites)
+#cut_metabolite_cols <- colnames(cut_imputed_data_23)
 
 #dataframe for the results
 results_Wilcoxon <- data.frame(
@@ -71,6 +76,7 @@ results_Wilcoxon <- data.frame(
   p_value = numeric(length(metabolite_cols)),
   statistic = numeric(length(metabolite_cols))
 )
+
 
 #loop through each metabolite and run Wilcoxon rank-sum test
 for (i in seq_along(metabolite_cols)) {
@@ -81,8 +87,8 @@ for (i in seq_along(metabolite_cols)) {
   #save results to dataframe
   results_Wilcoxon$p_value[i] <- test_result$p.value
   results_Wilcoxon$statistic[i] <- test_result$statistic
-  
 }
+
 
 #adjust p-value for multiple testing (Benjamini-Hochberg
 results_Wilcoxon$adj_p_value <- p.adjust(results_Wilcoxon$p_value, method = "BH")
@@ -96,7 +102,43 @@ significant_results_Wilcoxon <- results_Wilcoxon %>%
 
 print(significant_results_Wilcoxon)
 
-# Part 4 
+# Part 3.2 --------
+# Wilcoxon rank-sum test (for cut data)
+
+#select only metabolite columns for cut data
+#cut_imputed_data_23 <- cut_imputed_data_23[, 6:ncol(cut_imputed_data_23)]
+#cut_imputed_data_24 <- cut_imputed_data_24[, 6:ncol(cut_imputed_data_24)]
+
+# cut_results_Wilcoxon <- data.frame(
+#   Metabolite = cut_metabolite_cols,
+#   p_value = numeric(length(cut_metabolite_cols)),
+#   statistic = numeric(length(cut_metabolite_cols))
+# )
+
+#loop through each metabolite and run Wilcoxon rank-sum test for cut dataset
+# for (i in seq_along(cut_metabolite_cols)) {
+#   cut_metabolite <- cut_metabolite_cols[i]
+#   
+#   cut_test_result <- wilcox.test(cut_imputed_data_23[[cut_metabolite]], cut_imputed_data_24[[cut_metabolite]], paired = FALSE, exact = FALSE)
+#   
+#   #save results to dataframe
+#   cut_results_Wilcoxon$p_value[i] <- cut_test_result$p.value
+#   cut_results_Wilcoxon$statistic[i] <- cut_test_result$statistic
+# }
+
+#for cut data 
+#cut_results_Wilcoxon$adj_p_value <- p.adjust(cut_results_Wilcoxon$p_value, method = "BH")
+
+#print(cut_results_Wilcoxon)
+
+#view significant metabolites with BH adjusted p-value < 0.05 for cut data
+# cut_significant_results_Wilcoxon <- cut_results_Wilcoxon %>% 
+#   filter(adj_p_value < 0.05) %>% #usually 0.05 used 
+#   arrange(adj_p_value)
+# 
+# print(cut_significant_results_Wilcoxon)
+
+# Part 4 -------
 # Run unpaired t-test for each metabolite 
 #dataframe for the results
 results_ttest <- data.frame(
@@ -129,7 +171,8 @@ significant_results_ttest <- results_ttest %>%
 
 print(significant_results_ttest)
 
-# Part 3 ----
+
+# Part  6 --------
 # Check Half-Min imputation 
 # by comparing the  mean median and standard deviation for and after imputation
 
@@ -176,53 +219,4 @@ print(significant_results_ttest)
 # summary_comparison23 <- compute_stats(final_data_2023, imputed_data_23, cols_with_na_23)
 # summary_comparison24 <- compute_stats(final_data_2024, imputed_data_24, cols_with_na_24)
 
-# #save csv 
-# output_file23 <- "/Users/marcinebessire/Desktop/project/Summary_Statistics_HalfMin_23.csv"
-# write_csv(summary_comparison23, output_file23)
-# output_file24 <- "/Users/marcinebessire/Desktop/project/Summary_Statistics_HalfMin_24.csv"
-# write_csv(summary_comparison24, output_file24)
-# 
-# # Part 4 -----
-# # Visualization of original and imputed data 
-# 
-# #for 2023
-# #reshape data for plotting
-# plot_data <- final_data_2023 %>%
-#   select(all_of(cols_with_na_23)) %>%
-#   pivot_longer(everything(), names_to = "Variable", values_to = "Value") %>%
-#   mutate(Dataset = "Original") %>%
-#   bind_rows(
-#     imputed_data_23 %>%
-#       select(all_of(cols_with_na_23)) %>%
-#       pivot_longer(everything(), names_to = "Variable", values_to = "Value") %>%
-#       mutate(Dataset = "Imputed")
-#   )
-# 
-# # Boxplot Comparison
-# ggplot(plot_data, aes(x = Dataset, y = Value, fill = Dataset)) +
-#   geom_boxplot() +
-#   facet_wrap(~Variable, scales = "free") +
-#   theme_minimal() +
-#   labs(title = "Boxplot: Original vs Imputed", x = "Dataset", y = "Value")
-# 
-# #for 2024
-# #reshape data for plotting
-# plot_data <- final_data_2024 %>%
-#   select(all_of(cols_with_na_24)) %>%
-#   pivot_longer(everything(), names_to = "Variable", values_to = "Value") %>%
-#   mutate(Dataset = "Original") %>%
-#   bind_rows(
-#     imputed_data_24 %>%
-#       select(all_of(cols_with_na_24)) %>%
-#       pivot_longer(everything(), names_to = "Variable", values_to = "Value") %>%
-#       mutate(Dataset = "Imputed")
-#   )
-# 
-# # Boxplot Comparison
-# ggplot(plot_data, aes(x = Dataset, y = Value, fill = Dataset)) +
-#   geom_boxplot() +
-#   facet_wrap(~Variable, scales = "free") +
-#   theme_minimal() +
-#   labs(title = "Boxplot: Original vs Imputed", x = "Dataset", y = "Value")
-# 
-# 
+
