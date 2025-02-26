@@ -2,6 +2,8 @@
 library(tidyverse)
 library(ggplot2)
 library(corrplot)
+library(readr)
+library(stringr)
 
 # Part 1 ------
 # Perform Half-min imputation
@@ -62,8 +64,8 @@ half_min_23 <- imputed_data_23 %>% select(all_of(final_col))
 half_min_24 <- imputed_data_24 %>% select(all_of(final_col))
 
 #save common imputed metabolites to new file
-write_csv(half_min_23, "/Users/marcinebessire/Desktop/project/Common_Half_Min_Imputation23.csv")
-write_csv(half_min_24, "/Users/marcinebessire/Desktop/project/Common_Half_Min_Imputation24.csv")
+#write_csv(half_min_23, "/Users/marcinebessire/Desktop/project/Common_Half_Min_Imputation23.csv")
+#write_csv(half_min_24, "/Users/marcinebessire/Desktop/project/Common_Half_Min_Imputation24.csv")
 
 
 # Part 3 --------
@@ -240,5 +242,4 @@ cor_24_filtered <- cor(filtered_24$`CV [%]`, filtered_24$adj_p_value, method = "
 
 print(paste("Filtered Correlation for 2023:", cor_23_filtered)) #-0.2676
 print(paste("Filtered Correlation for 2024:", cor_24_filtered)) #-0.2495
-
 
