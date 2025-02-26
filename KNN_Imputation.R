@@ -127,24 +127,47 @@ for (i in 1:9) {
 cor_before_23 <- cor(numeric23, use = "pairwise.complete.obs")
 cor_after_23 <- cor(imputed_KNN23)
 
+cor_before_24 <- cor(numeric24, use = "pairwise.complete.obs")
+cor_after_24 <- cor(imputed_KNN24)
+
 # Scatter plot 
 #identify missing vlaues 
-missing_val <- is.na(numeric23) #99
+missing_val23 <- is.na(numeric23) #99
+missing_val24 <- is.na(numeric24) #526
 
-#cremissing_val#create logical matrix identifying if a pair of metabolites had missing values
-missing_pairs <- (missing_val %*% t(missing_val)) > 0 #True 
+
+#create logical matrix identifying if a pair of metabolites had missing values
+missing_pairs23 <- (missing_val23 %*% t(missing_val23)) > 0 #True 
+missing_pairs24 <- (missing_val24 %*% t(missing_val24)) > 0
 
 #extract upper triangular part of matrix 
-imputed_indices <- missing_pairs[upper.tri(missing_pairs, diag = FALSE)]
+#2023
+imputed_indices23 <- missing_pairs23[upper.tri(missing_pairs23, diag = FALSE)]
 cor_values_before23 <- cor_before_23[upper.tri(cor_before_23, diag = FALSE)]
 cor_values_after23 <- cor_after_23[upper.tri(cor_after_23, diag = FALSE)]
+#2024
+imputed_indices24 <- missing_pairs24[upper.tri(missing_pairs24, diag = FALSE)]
+cor_values_before24 <- cor_before_24[upper.tri(cor_before_24, diag = FALSE)]
+cor_values_after24 <- cor_after_24[upper.tri(cor_after_24, diag = FALSE)]
+
 
 dev.off()
+#2023
 plot(cor_values_before23, cor_values_after23,
      xlab = "Before Imputation",
      ylab = "After Imputation",
      main = "Correlation Comparison",
-     col = ifelse(imputed_indices, "red", "blue"), #red for imputed pairs
+     col = ifelse(imputed_indices23, "red", "blue"), #red for imputed pairs
+     pch = 19) 
+
+abline(0,1,col = "black", lwd = 2) #ideally points should line on line
+
+#2024
+plot(cor_values_before24, cor_values_after24,
+     xlab = "Before Imputation",
+     ylab = "After Imputation",
+     main = "Correlation Comparison",
+     col = ifelse(imputed_indices24, "red", "blue"), #red for imputed pairs
      pch = 19) 
 
 abline(0,1,col = "black", lwd = 2) #ideally points should line on line
