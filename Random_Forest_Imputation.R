@@ -1,6 +1,7 @@
 #load necessary library
 library(missForest)
 library(dplyr)
+library(corrplot)
 
 # Part 1 -------
 # Random Forest impputation of MV
@@ -102,8 +103,42 @@ significant_results_ttest_RF <- results_ttest_RF %>%
 
 print(significant_results_ttest_RF) #80 out of 84 were significant
 
+# Part 4 ----- 
+# Check if Impuation method was good 
+
 #OOB (out of bag imputation error) is the normalized mean squared error (NMSE) => the lower the better
 #NMSE = 0 means perfect prediction
 OOB23 <- RF_data23$OOBerror #0.005697
-OOB24 <- RF_data24$OOBerror #0.40187 
+OOB24 <- RF_data24$OOBerror #0.40187 higher error, less effecitve imputation 
+
+# Correlation analysis 
+cor_before_23 <- cor(numeric_23, use = "pairwise.complete.obs")
+cor_after_23 <- cor(imputed_RF_23)
+
+# Heat map
+par(mfrow = c(1,2)) #for side by side plots
+corrplot(cor_before_23, method = "color", tl.cex = 0.6, title = "Before Imputation (2023)")
+corrplot(cor_after_23, method = "color", tl.cex = 0.6, title = "After Imputation (2023)")
+dev.off()
+
+# Scatter plot 
+#identify missing vlaues 
+missing_val <- is.na(numeric_23) #total of 99 are missing
+
+#create logical matrix identifying if a pair of metabolites had missing values
+missing_pairs <- (missing_val %*% t(missing_val)) > 0 #True 
+
+#extract upper triangular part of matrix 
+imputed_indices <- missing_pairs[upper.tri(missing_pairs, diag = FALSE)]
+cor_values_before23 <- cor_before_23[upper.tri(cor_before_23, diag = FALSE)]
+cor_values_after23 <- cor_after_23[upper.tri(cor_after_23, diag = FALSE)]
+
+plot(cor_values_before23, cor_values_after23,
+     xlab = "Before Imputation",
+     ylab = "After Imputation",
+     main = "Correlation Comparison",
+     col = ifelse(imputed_indices, "red", "blue"), #red for imputed pairs
+     pch = 19) 
+     
+abline(0,1,col = "black", lwd = 2) #ideally points should line on line
 
