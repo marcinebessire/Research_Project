@@ -120,6 +120,8 @@ print(significant_results_ttest_QRILC) #0 out of 84 were significant
 # Correlation analysis 
 cor_before_23 <- cor(numeric23, use = "pairwise.complete.obs")
 cor_after_23 <- cor(QRILC23)
+cor_before_24 <- cor(numeric24, use = "pairwise.complete.obs")
+cor_after_24 <- cor(QRILC24)
 
 # Heat map
 par(mfrow = c(1,2)) #for side by side plots
@@ -130,11 +132,13 @@ dev.off()
 # Scatter plot 
 #identify missing vlaues 
 missing_val <- is.na(numeric23) #total of 99 are missing
+missing_val2 <- is.na(numeric24)
 
 #create logical matrix identifying if a pair of metabolites had missing values
 missing_pairs <- (missing_val %*% t(missing_val)) > 0 #True 
+missing_pairs2 <- (missing_val2 %*% t(missing_val2)) > 0 #True
 
-#extract upper triangular part of matrix 
+#extract upper triangular part of matrix 2023
 imputed_indices <- missing_pairs[upper.tri(missing_pairs, diag = FALSE)]
 cor_values_before23 <- cor_before_23[upper.tri(cor_before_23, diag = FALSE)]
 cor_values_after23 <- cor_after_23[upper.tri(cor_after_23, diag = FALSE)]
@@ -144,6 +148,20 @@ plot(cor_values_before23, cor_values_after23,
      ylab = "After Imputation",
      main = "Correlation Comparison",
      col = ifelse(imputed_indices, "red", "blue"), #red for imputed pairs
+     pch = 19) 
+
+abline(0,1,col = "black", lwd = 2) #ideally points should line on line
+
+#extract upper triangular part of matrix 2024
+imputed_indices2 <- missing_pairs2[upper.tri(missing_pairs2, diag = FALSE)]
+cor_values_before24 <- cor_before_24[upper.tri(cor_before_24, diag = FALSE)]
+cor_values_after24 <- cor_after_24[upper.tri(cor_after_24, diag = FALSE)]
+
+plot(cor_values_before24, cor_values_after24,
+     xlab = "Before Imputation",
+     ylab = "After Imputation",
+     main = "Correlation Comparison",
+     col = ifelse(imputed_indices2, "red", "blue"), #red for imputed pairs
      pch = 19) 
 
 abline(0,1,col = "black", lwd = 2) #ideally points should line on line
