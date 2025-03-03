@@ -153,7 +153,7 @@ shapiro_df24 <- data.frame(Metabolite = names(shapiro_results24), p_value = shap
 non_normal_count23 <- sum(shapiro_df23$p_value < 0.05)
 non_normal_count23 #61 metabolites are non-normal distributed 
 non_normal_count24 <- sum(shapiro_df24$p_value < 0.05)
-non_normal_count24 #61 metabolites are non-normal distributed 
+non_normal_count24 #69 metabolites are non-normal distributed 
 
 
 # Part 4 -----
@@ -162,28 +162,28 @@ non_normal_count24 #61 metabolites are non-normal distributed
 plot_imputation_distribution <- function(original_data, imputed_data, year, output_file) {
   #convert data to long format
   imputed_long <- imputed_data %>%
-    pivot_longer(cols = everything(), names_to = "Metabolite", values_to = "Imputed_Value")
+    pivot_longer(cols = everything(), names_to = "Metabolite", values_to = "Imputed_Data")
   
   original_long <- original_data %>%
-    pivot_longer(cols = everything(), names_to = "Metabolite", values_to = "Original_Value")
+    pivot_longer(cols = everything(), names_to = "Metabolite", values_to = "Original_Data")
   
   #identify imputed values
   imputed_only <- original_long %>%
-    mutate(Imputed = is.na(Original_Value)) %>%
+    mutate(Imputed = is.na(Original_Data)) %>%
     filter(Imputed) %>%
     select(Metabolite) %>%
     inner_join(imputed_long, by = "Metabolite") %>%
-    mutate(Dataset = "Imputed_Only")
+    mutate(Dataset = "Imputed_Values")
   
   #merge original and imputed datasets
   comparison <- original_long %>%
     left_join(imputed_long, by = "Metabolite") %>%
-    pivot_longer(cols = c("Original_Value", "Imputed_Value"), 
+    pivot_longer(cols = c("Original_Data", "Imputed_Data"), 
                  names_to = "Dataset", values_to = "Value")
   
   #add Imputed_Only as a separate dataset
   imputed_only <- imputed_only %>%
-    mutate(Value = Imputed_Value, Dataset = "Imputed_Only") %>%
+    mutate(Value = Imputed_Data, Dataset = "Imputed_Values") %>%
     select(Metabolite, Dataset, Value)
   
   #combine both datasets
@@ -199,9 +199,9 @@ plot_imputation_distribution <- function(original_data, imputed_data, year, outp
          x = "Metabolite Value",
          y = "Density") +
     theme_minimal() + 
-    scale_fill_manual(values = c("Original_Value" = "lightblue", 
-                                 "Imputed_Value" = "red", 
-                                 "Imputed_Only" = "green")) +
+    scale_fill_manual(values = c("Original_Data" = "lightblue", 
+                                 "Imputed_Data" = "red", 
+                                 "Imputed_Values" = "green")) +
     xlim(-10, 50)
   
   print(p)

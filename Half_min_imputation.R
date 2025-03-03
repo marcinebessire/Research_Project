@@ -267,8 +267,9 @@ print(paste("Filtered Correlation for 2023:", cor_23_filtered)) #-0.2676
 print(paste("Filtered Correlation for 2024:", cor_24_filtered)) #-0.2495
 
 dev.off()
+
 # # Part 6 -------
-# # check correlation coefficient before and after imputaiton for each year
+# # check correlation coefficient before and after imputation for each year
 # 
 # #correlation Check, compare correlation matrices
 # cor_before_23 <- cor(original_23_metabolites, use = "pairwise.complete.obs")
@@ -329,28 +330,28 @@ dev.off()
 #2023
 #convert data to long format for visualization
 half_min_23_long <- half_min_23_metabolites %>%
-  pivot_longer(cols = everything(), names_to = "Metabolite", values_to = "Imputed_Value")
+  pivot_longer(cols = everything(), names_to = "Metabolite", values_to = "Imputed_Data")
 
 original_23_long <- original_23_metabolites %>%
-  pivot_longer(cols = everything(), names_to = "Metabolite", values_to = "Original_Value")
+  pivot_longer(cols = everything(), names_to = "Metabolite", values_to = "Original_Data")
 
 #identify imputed values => missing values were replaced by half of the minimum observed value.
 imputed_only_23 <- original_23_long %>%
-  mutate(Imputed = is.na(Original_Value)) %>%
+  mutate(Imputed = is.na(Original_Data)) %>%
   filter(Imputed) %>%
   select(Metabolite) %>%
   inner_join(half_min_23_long, by = "Metabolite") %>%
-  mutate(Dataset = "Imputed_Only")
+  mutate(Dataset = "Imputed_Values")
 
 #merge original and imputed datasets
 comparison_23 <- original_23_long %>%
   left_join(half_min_23_long, by = "Metabolite") %>%
-  pivot_longer(cols = c("Original_Value", "Imputed_Value"), 
+  pivot_longer(cols = c("Original_Data", "Imputed_Data"), 
                names_to = "Dataset", values_to = "Value")
 
 #add Imputed_Only as a separate dataset
 imputed_only_23 <- imputed_only_23 %>%
-  mutate(Value = Imputed_Value, Dataset = "Imputed_Only") %>%
+  mutate(Value = Imputed_Data, Dataset = "Imputed_Values") %>%
   select(Metabolite, Dataset, Value)
 
 #combine both datasets
@@ -359,28 +360,28 @@ comparison_23 <- bind_rows(comparison_23, imputed_only_23)
 #2024
 #convert data to long format for visualization
 half_min_24_long <- half_min_24_metabolites %>%
-  pivot_longer(cols = everything(), names_to = "Metabolite", values_to = "Imputed_Value")
+  pivot_longer(cols = everything(), names_to = "Metabolite", values_to = "Imputed_Data")
 
 original_24_long <- original_24_metabolites %>%
-  pivot_longer(cols = everything(), names_to = "Metabolite", values_to = "Original_Value")
+  pivot_longer(cols = everything(), names_to = "Metabolite", values_to = "Original_Data")
 
 #identify imputed values => missing values were replaced by half of the minimum observed value.
 imputed_only_24 <- original_24_long %>%
-  mutate(Imputed = is.na(Original_Value)) %>%
+  mutate(Imputed = is.na(Original_Data)) %>%
   filter(Imputed) %>%
   select(Metabolite) %>%
   inner_join(half_min_24_long, by = "Metabolite") %>%
-  mutate(Dataset = "Imputed_Only")
+  mutate(Dataset = "Imputed_Values")
 
 #merge original and imputed datasets
 comparison_24 <- original_24_long %>%
   left_join(half_min_24_long, by = "Metabolite") %>%
-  pivot_longer(cols = c("Original_Value", "Imputed_Value"), 
+  pivot_longer(cols = c("Original_Data", "Imputed_Data"), 
                names_to = "Dataset", values_to = "Value")
 
 #add Imputed_Only as a separate dataset
 imputed_only_24 <- imputed_only_24 %>%
-  mutate(Value = Imputed_Value, Dataset = "Imputed_Only") %>%
+  mutate(Value = Imputed_Data, Dataset = "Imputed_Values") %>%
   select(Metabolite, Dataset, Value)
 
 #combine both datasets
@@ -397,9 +398,9 @@ ggplot(comparison_23, aes(x = Value, fill = Dataset)) +
        x = "Metabolite Value",
        y = "Density") +
   theme_minimal() + 
-  scale_fill_manual(values = c("Original_Value" = "lightblue", 
-                               "Imputed_Value" = "red", 
-                               "Imputed_Only" = "green")) +
+  scale_fill_manual(values = c("Original_Data" = "lightblue", 
+                               "Imputed_Data" = "red", 
+                               "Imputed_Values" = "green")) +
   xlim(-10,50)
 
 #2024 plot
@@ -410,9 +411,9 @@ ggplot(comparison_24, aes(x = Value, fill = Dataset)) +
        x = "Metabolite Value",
        y = "Density") +
   theme_minimal() + 
-  scale_fill_manual(values = c("Original_Value" = "lightblue", 
-                               "Imputed_Value" = "red", 
-                               "Imputed_Only" = "green")) +
+  scale_fill_manual(values = c("Original_Data" = "lightblue", 
+                               "Imputed_Data" = "red", 
+                               "Imputed_Values" = "green")) +
   xlim(-10,50)
   
 
