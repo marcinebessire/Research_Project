@@ -1,9 +1,10 @@
-# Load required library
+#Load required library
 library(tidyverse)
 library(ggplot2)
 library(corrplot)
 library(readr)
 library(stringr)
+library(dplyr)
 
 # Part 1 ------
 # Perform Half-min imputation
@@ -109,43 +110,8 @@ significant_results_Wilcoxon <- results_Wilcoxon %>%
   filter(adj_p_value < 0.05) %>% #usually 0.05 used 
   arrange(adj_p_value)
 
-print(significant_results_Wilcoxon)
+print(significant_results_Wilcoxon) #78 out of 84
 
-# Part 3.2 --------
-# Wilcoxon rank-sum test (for cut data)
-
-#select only metabolite columns for cut data
-#cut_imputed_data_23 <- cut_imputed_data_23[, 6:ncol(cut_imputed_data_23)]
-#cut_imputed_data_24 <- cut_imputed_data_24[, 6:ncol(cut_imputed_data_24)]
-
-# cut_results_Wilcoxon <- data.frame(
-#   Metabolite = cut_metabolite_cols,
-#   p_value = numeric(length(cut_metabolite_cols)),
-#   statistic = numeric(length(cut_metabolite_cols))
-# )
-
-#loop through each metabolite and run Wilcoxon rank-sum test for cut dataset
-# for (i in seq_along(cut_metabolite_cols)) {
-#   cut_metabolite <- cut_metabolite_cols[i]
-#   
-#   cut_test_result <- wilcox.test(cut_imputed_data_23[[cut_metabolite]], cut_imputed_data_24[[cut_metabolite]], paired = FALSE, exact = FALSE)
-#   
-#   #save results to dataframe
-#   cut_results_Wilcoxon$p_value[i] <- cut_test_result$p.value
-#   cut_results_Wilcoxon$statistic[i] <- cut_test_result$statistic
-# }
-
-#for cut data 
-#cut_results_Wilcoxon$adj_p_value <- p.adjust(cut_results_Wilcoxon$p_value, method = "BH")
-
-#print(cut_results_Wilcoxon)
-
-#view significant metabolites with BH adjusted p-value < 0.05 for cut data
-# cut_significant_results_Wilcoxon <- cut_results_Wilcoxon %>% 
-#   filter(adj_p_value < 0.05) %>% #usually 0.05 used 
-#   arrange(adj_p_value)
-# 
-# print(cut_significant_results_Wilcoxon)
 
 # Part 4 -------
 # Run unpaired t-test for each metabolite 
@@ -178,9 +144,39 @@ significant_results_ttest <- results_ttest %>%
   filter(adj_p_value < 0.05) %>% #usually 0.05 used 
   arrange(adj_p_value)
 
-print(significant_results_ttest)
+print(significant_results_ttest) #74 out of 84
 
-# Part 6 -------
+#grouped bar plot 
+#count total number of metabolites
+total_metabolites <- length(metabolite_cols) #84
+
+#nr of significant metabolites for each test
+significant_wilcoxon <- nrow(significant_results_Wilcoxon) #78
+significant_ttest <- nrow(significant_results_ttest) #74
+
+#create summary dataframe
+test_results <- data.frame(
+  Test = rep(c("Wilcoxon", "T-test"), each = 2),
+  Category = rep(c("Significant", "Non-Significant"), 2),
+  Count = c(significant_wilcoxon, total_metabolites - significant_wilcoxon,
+            significant_ttest, total_metabolites - significant_ttest)
+)
+
+pdf("/Users/marcinebessire/Desktop/project/Halfmin_Significance.pdf", width = 10, height = 6)
+
+#plot grouped bar chart
+ggplot(test_results, aes(x = Test, y = Count, fill = Category)) +
+  geom_bar(position="dodge", stat="identity") +  #grouped bars
+  theme_minimal() +
+  labs(title = "Number of Significant vs Non-Significant Metabolites using Half-min Imputation",
+       x = "Statistical Test",
+       y = "Count of Metabolites") +
+  scale_fill_manual(values = c("Significant" = "blue", "Non-Significant" ="lightblue")) +
+  theme(legend.position = "top") +
+  geom_text(aes(label = Count), position = position_dodge(width = 0.9), vjust = -0.5)  #add labels
+
+dev.off()
+# Part 5 -------
 # Correlation Coefficient for each year (between CV (values before imputation) and Metabolite after Half min Imputation)
 
 #load CV data for both years 
@@ -224,7 +220,7 @@ ggplot(merged_24, aes(x = `CV [%]`, y = adj_p_value)) +
   ylim(0.0, 0.01)
   theme_minimal()
 
-#measure Spearman rank correlation (monotinic relationship)  
+#measure Spearman rank correlation (monotonic relationship)  
 cor_23_spearman <- cor(merged_23$CV, merged_23$adj_p_value, method = "spearman")
 cor_24_spearman <- cor(merged_24$CV, merged_24$adj_p_value, method = "spearman")
 print(paste("Spearman Correlation for 2023:", cor_23_spearman)) #-0.105
@@ -242,4 +238,153 @@ cor_24_filtered <- cor(filtered_24$`CV [%]`, filtered_24$adj_p_value, method = "
 
 print(paste("Filtered Correlation for 2023:", cor_23_filtered)) #-0.2676
 print(paste("Filtered Correlation for 2024:", cor_24_filtered)) #-0.2495
+
+# Part 6 -----
+# Distribution plot of data before and after Imputation 
+
+#load original common metabolites
+original_23 <- read.csv("/Users/marcinebessire/Desktop/project/Common_Metabolites23.csv", check.names = FALSE)
+original_24 <- read.csv("/Users/marcinebessire/Desktop/project/Common_Metabolites24.csv", check.names = FALSE)
+
+#keep only numeric columns
+original_23_metabolites <- original_23[, 6:ncol(original_23)]
+original_24_metabolites <- original_24[, 6:ncol(original_24)]
+
+#2023
+#convert data to long format for visualization
+half_min_23_long <- half_min_23_metabolites %>%
+  pivot_longer(cols = everything(), names_to = "Metabolite", values_to = "Imputed_Value")
+
+original_23_long <- original_23_metabolites %>%
+  pivot_longer(cols = everything(), names_to = "Metabolite", values_to = "Original_Value")
+
+#merge the original and imputed datasets
+comparison_23 <- left_join(original_23_long, half_min_23_long, by = "Metabolite") %>%
+  pivot_longer(cols = c("Original_Value", "Imputed_Value"), names_to = "Dataset", values_to = "Value")
+
+#2024
+#convert data to long format for visualization
+half_min_24_long <- half_min_24_metabolites %>%
+  pivot_longer(cols = everything(), names_to = "Metabolite", values_to = "Imputed_Value")
+
+original_24_long <- original_24_metabolites %>%
+  pivot_longer(cols = everything(), names_to = "Metabolite", values_to = "Original_Value")
+
+#merge the original and imputed datasets
+comparison_24 <- left_join(original_24_long, half_min_24_long, by = "Metabolite") %>%
+  pivot_longer(cols = c("Original_Value", "Imputed_Value"), names_to = "Dataset", values_to = "Value")
+
+#Now plot 
+#open a PDF device to save multiple plots
+pdf("/Users/marcinebessire/Desktop/project/Halfmin_Distribution_Comparison.pdf", width = 8, height = 6)
+
+#2023
+#plot density distributions for original and imputed data separately
+ggplot(comparison_23, aes(x = Value, fill = Dataset, color = Dataset)) +
+  geom_density(alpha = 0.4) +  # Density plot with transparency
+  theme_minimal() +
+  labs(title = "Distribution of Metabolites Before and After Half-min Imputation (2023)",
+       x = "Metabolite Value",
+       y = "Density") +
+  xlim(-10,200)
+theme(legend.position = "right")
+
+#2024 plot
+#plot density distributions for original and imputed data separately
+ggplot(comparison_24, aes(x = Value, fill = Dataset, color = Dataset)) +
+  geom_density(alpha = 0.4) +  # Density plot with transparency
+  theme_minimal() +
+  labs(title = "Distribution of Metabolites Before and After Half-min Imputation (2024)",
+       x = "Metabolite Value",
+       y = "Density") +
+  xlim(-10,200)
+  theme(legend.position = "right")
+  
+
+dev.off()
+
+# Part 7 ------
+# calculate normalized difference of each imputation (before and after) and plot
+
+#mean before imputation
+mean_before23 <- original_23_metabolites %>%
+  summarise(across(everything(), mean, na.rm = TRUE)) %>%
+  pivot_longer(cols = everything(), names_to = "Metabolite", values_to = "Mean_Before")
+
+#means after imputation
+mean_after23 <- half_min_23_metabolites %>%
+  summarise(across(everything(), mean, na.rm = TRUE)) %>%
+  pivot_longer(cols = everything(), names_to = "Metabolite", values_to = "Mean_After")
+
+#merge before and after mean values
+mean_comparison23 <- left_join(mean_before23, mean_after23, by = "Metabolite")
+
+#compute normalized difference: (Mean_After - Mean_Before) / Mean_Before
+mean_comparison23 <- mean_comparison23 %>%
+  mutate(Normalized_Difference = (Mean_After - Mean_Before) / Mean_Before)
+
+#mean before imputation
+mean_before24 <- original_24_metabolites %>%
+  summarise(across(everything(), mean, na.rm = TRUE)) %>%
+  pivot_longer(cols = everything(), names_to = "Metabolite", values_to = "Mean_Before")
+
+#means after imputation
+mean_after24 <- half_min_24_metabolites %>%
+  summarise(across(everything(), mean, na.rm = TRUE)) %>%
+  pivot_longer(cols = everything(), names_to = "Metabolite", values_to = "Mean_After")
+
+#merge before and after mean values
+mean_comparison24 <- left_join(mean_before24, mean_after24, by = "Metabolite")
+
+#compute normalized difference: (Mean_After - Mean_Before) / Mean_Before
+mean_comparison24 <- mean_comparison24 %>%
+  mutate(Normalized_Difference = (Mean_After - Mean_Before) / Mean_Before)
+
+pdf("/Users/marcinebessire/Desktop/project/Halfmin_Normalized_Difference_Comparison.pdf", width = 10, height = 6)
+
+#plot normalized difference
+ggplot(mean_comparison23, aes(x = Metabolite, y = Normalized_Difference, fill = Normalized_Difference)) +
+  geom_bar(stat = "identity") +
+  theme_minimal() +
+  labs(title = "Normalized Difference in Mean Before and After Imputation",
+       x = "Metabolite",
+       y = "Normalized Difference") +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
+  scale_fill_gradient2(low = "blue", mid = "white", high = "red", midpoint = 0)
+
+
+#plot normalized difference
+ggplot(mean_comparison24, aes(x = Metabolite, y = Normalized_Difference, fill = Normalized_Difference)) +
+  geom_bar(stat = "identity") +
+  theme_minimal() +
+  labs(title = "Normalized Difference in Mean Before and After Imputation",
+       x = "Metabolite",
+       y = "Normalized Difference") +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
+  scale_fill_gradient2(low = "blue", mid = "white", high = "red", midpoint = 0)
+
+#plot the density of the normalized difference
+ggplot(mean_comparison23, aes(x = Normalized_Difference)) +
+  geom_density(fill = "blue", alpha = 0.4, color = "black") +  # Density plot
+  theme_minimal() +
+  labs(title = "Density Plot of Normalized Difference",
+       x = "Normalized Difference",
+       y = "Density") +
+  xlim(-0.2,0.2)
+  geom_vline(xintercept = 0, linetype = "dashed", color = "red")  # Reference line at 0
+
+#plot the density of the normalized difference
+ggplot(mean_comparison24, aes(x = Normalized_Difference)) +
+  geom_density(fill = "blue", alpha = 0.4, color = "black") +  # Density plot
+  theme_minimal() +
+  labs(title = "Density Plot of Normalized Difference",
+       x = "Normalized Difference",
+       y = "Density") +
+  xlim(-0.4,0.4)
+  geom_vline(xintercept = 0, linetype = "dashed", color = "red")  # Reference line at 0
+
+dev.off()
+
+
+
 
