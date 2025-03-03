@@ -119,7 +119,7 @@ pdf("/Users/marcinebessire/Desktop/project/KNN_Significance.pdf", width = 10, he
 ggplot(test_results, aes(x = Test, y = Count, fill = Category)) +
   geom_bar(position="dodge", stat="identity") +  #grouped bars
   theme_minimal() +
-  labs(title = "Number of Significant vs Non-Significant Metabolites using Half-min Imputation",
+  labs(title = "Number of Significant vs Non-Significant Metabolites using KNN Imputation",
        x = "Statistical Test",
        y = "Count of Metabolites") +
   scale_fill_manual(values = c("Significant" = "blue", "Non-Significant" ="lightblue")) +
