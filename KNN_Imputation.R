@@ -1,6 +1,9 @@
 #load library
 library(impute) #for impute.knn() function 
 library(corrplot) #for correlaion coefficient calculation
+library(ggplot2)
+library(dplyr)
+library(tidyr)
 
 # Part 1 -------
 # Perform KNN imputation of Missing values 
@@ -94,81 +97,242 @@ significant_results_ttest_KNN <- results_ttest_KNN %>%
 
 print(significant_results_ttest_KNN) #6 out of 84 were significant
 
+#grouped bar plot 
+#count total number of metabolites
+total_metabolites <- length(metabolite_cols) #84
 
-# Part 4 ----
-# Assess quality of KNN imputation 
+#nr of significant metabolites for each test
+significant_wilcoxon <- nrow(significant_results_Wilcoxon_KNN) #81
+significant_ttest <- nrow(significant_results_ttest_KNN) #6
 
-#first check if all values were imputed (no NA left)
-sum(is.na(imputed_KNN23)) #is 0
-sum(is.na(imputed_KNN24)) #is 0 
+#create summary dataframe
+test_results <- data.frame(
+  Test = rep(c("Wilcoxon", "T-test"), each = 2),
+  Category = rep(c("Significant", "Non-Significant"), 2),
+  Count = c(significant_wilcoxon, total_metabolites - significant_wilcoxon,
+            significant_ttest, total_metabolites - significant_ttest)
+)
 
-#compare data distribution before and after imputation 
-par(mfrow = c(3,3)) #3x3 grid
-par(mar = c(4,4,2,1))
+pdf("/Users/marcinebessire/Desktop/project/KNN_Significance.pdf", width = 10, height = 6)
 
-#Boxplots of 9 metabolites (because 84 too big) for 2023
-for (i in 1:9) {
-  boxplot(imputed_KNN23[[i]], numeric23[[i]],
-          names = c("KNN Imputation", "No Imputation"),
-          main = paste("Metabolite", colnames(imputed_KNN23)[i]),
-          col = c("lightblue", "lightgreen"))
-}
-
-#Boxplots of 9 metabolites (because 84 too big) for 2024
-for (i in 1:9) {
-  boxplot(imputed_KNN24[[i]], numeric24[[i]],
-          names = c("KNN Imputation", "No Imputation"),
-          main = paste("Metabolite", colnames(imputed_KNN23)[i]),
-          col = c("lightblue", "lightgreen"))
-}
-dev.off()
-#Correlation Check, compare correlation matrices
-cor_before_23 <- cor(numeric23, use = "pairwise.complete.obs")
-cor_after_23 <- cor(imputed_KNN23)
-
-cor_before_24 <- cor(numeric24, use = "pairwise.complete.obs")
-cor_after_24 <- cor(imputed_KNN24)
-
-# Scatter plot 
-#identify missing vlaues 
-missing_val23 <- is.na(numeric23) #99
-missing_val24 <- is.na(numeric24) #526
-
-
-#create logical matrix identifying if a pair of metabolites had missing values
-missing_pairs23 <- (missing_val23 %*% t(missing_val23)) > 0 #True 
-missing_pairs24 <- (missing_val24 %*% t(missing_val24)) > 0
-
-#extract upper triangular part of matrix 
-#2023
-imputed_indices23 <- missing_pairs23[upper.tri(missing_pairs23, diag = FALSE)]
-cor_values_before23 <- cor_before_23[upper.tri(cor_before_23, diag = FALSE)]
-cor_values_after23 <- cor_after_23[upper.tri(cor_after_23, diag = FALSE)]
-#2024
-imputed_indices24 <- missing_pairs24[upper.tri(missing_pairs24, diag = FALSE)]
-cor_values_before24 <- cor_before_24[upper.tri(cor_before_24, diag = FALSE)]
-cor_values_after24 <- cor_after_24[upper.tri(cor_after_24, diag = FALSE)]
-
-pdf("/Users/marcinebessire/Desktop/project/KNN_Correlation_Comparison.pdf", width = 8, height = 6)
-
-#2023
-plot(cor_values_before23, cor_values_after23,
-     xlab = "Before Imputation",
-     ylab = "After Imputation",
-     main = "Correlation Comparison",
-     col = ifelse(imputed_indices23, "red", "blue"), #red for imputed pairs
-     pch = 19) 
-
-abline(0,1,col = "black", lwd = 2) #ideally points should line on line
-
-#2024
-plot(cor_values_before24, cor_values_after24,
-     xlab = "Before Imputation",
-     ylab = "After Imputation",
-     main = "Correlation Comparison",
-     col = ifelse(imputed_indices24, "red", "blue"), #red for imputed pairs
-     pch = 19) 
-
-abline(0,1,col = "black", lwd = 2) #ideally points should line on line
+#plot grouped bar chart
+ggplot(test_results, aes(x = Test, y = Count, fill = Category)) +
+  geom_bar(position="dodge", stat="identity") +  #grouped bars
+  theme_minimal() +
+  labs(title = "Number of Significant vs Non-Significant Metabolites using Half-min Imputation",
+       x = "Statistical Test",
+       y = "Count of Metabolites") +
+  scale_fill_manual(values = c("Significant" = "blue", "Non-Significant" ="lightblue")) +
+  theme(legend.position = "top") +
+  geom_text(aes(label = Count), position = position_dodge(width = 0.9), vjust = -0.5)  #add labels
 
 dev.off()
+
+# Part 3.2 -------
+# Check normality of data 
+
+#check normality using shapiro.test (becuase t-test assumes normality)
+shapiro_results23 <- apply(imputed_KNN23, 2, function(x) shapiro.test(x)$p.value)
+shapiro_results24 <- apply(imputed_KNN24, 2, function(x) shapiro.test(x)$p.value)
+
+
+#convert to a dataframe for easy viewing
+shapiro_df23 <- data.frame(Metabolite = names(shapiro_results23), p_value = shapiro_results23) #total 84 metabolites
+shapiro_df24 <- data.frame(Metabolite = names(shapiro_results24), p_value = shapiro_results24)
+
+#if p-value < 0.05 then not normal distribution
+non_normal_count23 <- sum(shapiro_df23$p_value < 0.05)
+non_normal_count23 #61 metabolites are non-normal distributed 
+non_normal_count24 <- sum(shapiro_df24$p_value < 0.05)
+non_normal_count24 #84 metabolites are non-normal distributed 
+
+# Part 4 -----
+# Distirbution plot before and after Imputation and Imputed Values Only 
+
+plot_imputation_distribution <- function(original_data, imputed_data, year, output_file) {
+  #convert data to long format
+  imputed_long <- imputed_data %>%
+    pivot_longer(cols = everything(), names_to = "Metabolite", values_to = "Imputed_Value")
+  
+  original_long <- original_data %>%
+    pivot_longer(cols = everything(), names_to = "Metabolite", values_to = "Original_Value")
+  
+  #identify imputed values
+  imputed_only <- original_long %>%
+    mutate(Imputed = is.na(Original_Value)) %>%
+    filter(Imputed) %>%
+    select(Metabolite) %>%
+    inner_join(imputed_long, by = "Metabolite") %>%
+    mutate(Dataset = "Imputed_Only")
+  
+  #merge original and imputed datasets
+  comparison <- original_long %>%
+    left_join(imputed_long, by = "Metabolite") %>%
+    pivot_longer(cols = c("Original_Value", "Imputed_Value"), 
+                 names_to = "Dataset", values_to = "Value")
+  
+  #add Imputed_Only as a separate dataset
+  imputed_only <- imputed_only %>%
+    mutate(Value = Imputed_Value, Dataset = "Imputed_Only") %>%
+    select(Metabolite, Dataset, Value)
+  
+  #combine both datasets
+  comparison <- bind_rows(comparison, imputed_only)
+  
+  # Open a PDF device to save the plot
+  pdf(output_file, width = 8, height = 6)
+  
+  #generate the plot
+  p <- ggplot(comparison, aes(x = Value, fill = Dataset)) +
+    geom_density(alpha = 0.5) +  # Transparency for overlapping
+    labs(title = paste("Distribution of Original, Imputed, and Imputed_Only Values (", year, ")", sep = ""),
+         x = "Metabolite Value",
+         y = "Density") +
+    theme_minimal() + 
+    scale_fill_manual(values = c("Original_Value" = "lightblue", 
+                                 "Imputed_Value" = "red", 
+                                 "Imputed_Only" = "green")) +
+    xlim(-10, 50)
+  
+  print(p)
+  dev.off()
+}
+
+density_plot_KNN_23 <- plot_imputation_distribution(numeric23, imputed_KNN23, "2023", "/Users/marcinebessire/Desktop/project/KNN_Distribution_Comparison23.pdf")
+density_plot_KNN_24 <- plot_imputation_distribution(numeric24, imputed_KNN24, "2024", "/Users/marcinebessire/Desktop/project/KNN_Distribution_Comparison24.pdf")
+
+# Part 5 ------
+# calculate normalized difference of each imputation (before and after) and plot
+
+calculate_normalized_difference <- function(original_data, imputed_data, year, output_file) {
+  #mean before imputation
+  mean_before <- original_data %>%
+    summarise(across(everything(), mean, na.rm = TRUE)) %>%
+    pivot_longer(cols = everything(), names_to = "Metabolite", values_to = "Mean_Before")
+  
+  #mean after imputation
+  mean_after <- imputed_data %>%
+    summarise(across(everything(), mean, na.rm = TRUE)) %>%
+    pivot_longer(cols = everything(), names_to = "Metabolite", values_to = "Mean_After")
+  
+  #merge before and after mean values
+  mean_comparison <- left_join(mean_before, mean_after, by = "Metabolite")
+  
+  #normalized difference
+  mean_comparison <- mean_comparison %>%
+    mutate(Normalized_Difference = (Mean_After - Mean_Before) / Mean_Before)
+  
+  # save the plot
+  pdf(output_file, width = 10, height = 6)
+  
+  #plot normalized difference
+  p1 <- ggplot(mean_comparison, aes(x = Metabolite, y = Normalized_Difference, fill = Normalized_Difference)) +
+    geom_bar(stat = "identity") +
+    theme_minimal() +
+    labs(title = paste("Normalized Difference in Mean Before and After Imputation (", year, ")", sep = ""),
+         x = "Metabolite",
+         y = "Normalized Difference") +
+    theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
+    scale_fill_gradient2(low = "blue", mid = "white", high = "red", midpoint = 0)
+  
+  print(p1)
+  
+  #plot density of the normalized difference
+  p2 <- ggplot(mean_comparison, aes(x = Normalized_Difference)) +
+    geom_density(fill = "blue", alpha = 0.4, color = "black") +  # Density plot
+    theme_minimal() +
+    labs(title = paste("Density Plot of Normalized Difference (", year, ")", sep = ""),
+         x = "Normalized Difference",
+         y = "Density") +
+    xlim(-0.4, 0.4) +
+    geom_vline(xintercept = 0, linetype = "dashed", color = "red")  # Reference line at 0
+  
+  print(p2)
+  
+  dev.off()
+}
+
+normalized_difference23 <- calculate_normalized_difference(numeric23, imputed_KNN23, "2023", "/Users/marcinebessire/Desktop/project/KNN_normalized_difference23.pdf")
+normalized_difference24 <- calculate_normalized_difference(numeric24, imputed_KNN24, "2024", "/Users/marcinebessire/Desktop/project/KNN_normalized_difference24.pdf")
+
+
+
+# # Extra Part (Correlation)
+# # Assess quality of KNN imputation 
+# 
+# #first check if all values were imputed (no NA left)
+# sum(is.na(imputed_KNN23)) #is 0
+# sum(is.na(imputed_KNN24)) #is 0 
+# 
+# #compare data distribution before and after imputation 
+# par(mfrow = c(3,3)) #3x3 grid
+# par(mar = c(4,4,2,1))
+# 
+# #Boxplots of 9 metabolites (because 84 too big) for 2023
+# for (i in 1:9) {
+#   boxplot(imputed_KNN23[[i]], numeric23[[i]],
+#           names = c("KNN Imputation", "No Imputation"),
+#           main = paste("Metabolite", colnames(imputed_KNN23)[i]),
+#           col = c("lightblue", "lightgreen"))
+# }
+# 
+# #Boxplots of 9 metabolites (because 84 too big) for 2024
+# for (i in 1:9) {
+#   boxplot(imputed_KNN24[[i]], numeric24[[i]],
+#           names = c("KNN Imputation", "No Imputation"),
+#           main = paste("Metabolite", colnames(imputed_KNN23)[i]),
+#           col = c("lightblue", "lightgreen"))
+# }
+
+
+# #Correlation Check, compare correlation matrices
+# cor_before_23 <- cor(numeric23, use = "pairwise.complete.obs")
+# cor_after_23 <- cor(imputed_KNN23)
+# 
+# cor_before_24 <- cor(numeric24, use = "pairwise.complete.obs")
+# cor_after_24 <- cor(imputed_KNN24)
+# 
+# # Scatter plot 
+# #identify missing vlaues 
+# missing_val23 <- is.na(numeric23) #99
+# missing_val24 <- is.na(numeric24) #526
+# 
+# 
+# #create logical matrix identifying if a pair of metabolites had missing values
+# missing_pairs23 <- (missing_val23 %*% t(missing_val23)) > 0 #True 
+# missing_pairs24 <- (missing_val24 %*% t(missing_val24)) > 0
+# 
+# #extract upper triangular part of matrix 
+# #2023
+# imputed_indices23 <- missing_pairs23[upper.tri(missing_pairs23, diag = FALSE)]
+# cor_values_before23 <- cor_before_23[upper.tri(cor_before_23, diag = FALSE)]
+# cor_values_after23 <- cor_after_23[upper.tri(cor_after_23, diag = FALSE)]
+# #2024
+# imputed_indices24 <- missing_pairs24[upper.tri(missing_pairs24, diag = FALSE)]
+# cor_values_before24 <- cor_before_24[upper.tri(cor_before_24, diag = FALSE)]
+# cor_values_after24 <- cor_after_24[upper.tri(cor_after_24, diag = FALSE)]
+# 
+# pdf("/Users/marcinebessire/Desktop/project/KNN_Correlation_Comparison.pdf", width = 8, height = 6)
+# 
+# #2023
+# plot(cor_values_before23, cor_values_after23,
+#      xlab = "Before Imputation",
+#      ylab = "After Imputation",
+#      main = "Correlation Comparison",
+#      col = ifelse(imputed_indices23, "red", "blue"), #red for imputed pairs
+#      pch = 19) 
+# 
+# abline(0,1,col = "black", lwd = 2) #ideally points should line on line
+# 
+# #2024
+# plot(cor_values_before24, cor_values_after24,
+#      xlab = "Before Imputation",
+#      ylab = "After Imputation",
+#      main = "Correlation Comparison",
+#      col = ifelse(imputed_indices24, "red", "blue"), #red for imputed pairs
+#      pch = 19) 
+# 
+# abline(0,1,col = "black", lwd = 2) #ideally points should line on line
+# 
+# dev.off()
+

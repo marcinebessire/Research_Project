@@ -185,6 +185,24 @@ ggplot(test_results, aes(x = Test, y = Count, fill = Category)) +
 
 dev.off()
 
+# Part 4.2 -----
+# Check normality of data 
+
+#check normality using shapiro.test (becuase t-test assumes normality)
+shapiro_results23 <- apply(half_min_23_metabolites, 2, function(x) shapiro.test(x)$p.value)
+shapiro_results24 <- apply(half_min_24_metabolites, 2, function(x) shapiro.test(x)$p.value)
+
+
+#convert to a dataframe for easy viewing
+shapiro_df23 <- data.frame(Metabolite = names(shapiro_results23), p_value = shapiro_results23) #total 84 metabolites
+shapiro_df24 <- data.frame(Metabolite = names(shapiro_results24), p_value = shapiro_results24)
+
+#if p-value < 0.05 then not normal distribution
+non_normal_count23 <- sum(shapiro_df23$p_value < 0.05)
+non_normal_count23 #64 metabolites are non-normal distributed 
+non_normal_count24 <- sum(shapiro_df24$p_value < 0.05)
+non_normal_count24 #84 metabolites are non-normal distributed 
+
 # Part 5 -------
 # Correlation Coefficient for each year (between CV (values before imputation) and Metabolite after Half min Imputation)
 
