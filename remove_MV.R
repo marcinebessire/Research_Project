@@ -107,7 +107,7 @@ print(lres23)
 num_normal23 <- sum(lres23["p.value", ] >= 0.05)
 
 # Print the count
-cat("Number of normally distributed metabolites:", num_normal23, "\n")#gives 20 
+cat("Number of normally distributed metabolites:", num_normal23, "\n")#gives 25
 
 #2024
 lshap24 <- lapply(data_columns24, shapiro.test)

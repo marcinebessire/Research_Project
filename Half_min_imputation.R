@@ -394,7 +394,7 @@ pdf("/Users/marcinebessire/Desktop/project/Halfmin_Distribution_Comparison.pdf",
 #2023 plot 
 ggplot(comparison_23, aes(x = Value, fill = Dataset)) +
   geom_density(alpha = 0.5) +  # Transparency for overlapping
-  labs(title = "Distribution of Original, Imputed, and Imputed_Only Values (2023)",
+  labs(title = "Distribution of Original Data, Imputed Data, and Imputed Values (2023)",
        x = "Metabolite Value",
        y = "Density") +
   theme_minimal() + 
@@ -407,7 +407,7 @@ ggplot(comparison_23, aes(x = Value, fill = Dataset)) +
 #plot density distributions for original and imputed data separately
 ggplot(comparison_24, aes(x = Value, fill = Dataset)) +
   geom_density(alpha = 0.5) +  # Transparency for overlapping
-  labs(title = "Distribution of Original, Imputed, and Imputed_Only Values (2024)",
+  labs(title = "Distribution of Original Data, Imputed Data, and Imputed Values (2024)",
        x = "Metabolite Value",
        y = "Density") +
   theme_minimal() + 
@@ -462,7 +462,7 @@ pdf("/Users/marcinebessire/Desktop/project/Halfmin_Normalized_Difference_Compari
 ggplot(mean_comparison23, aes(x = Metabolite, y = Normalized_Difference, fill = Normalized_Difference)) +
   geom_bar(stat = "identity") +
   theme_minimal() +
-  labs(title = "Normalized Difference in Mean Before and After Imputation (2023)",
+  labs(title = "Normalized Difference in Mean Before and After Half-min Imputation (2023)",
        x = "Metabolite",
        y = "Normalized Difference") +
   theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
@@ -473,7 +473,7 @@ ggplot(mean_comparison23, aes(x = Metabolite, y = Normalized_Difference, fill = 
 ggplot(mean_comparison24, aes(x = Metabolite, y = Normalized_Difference, fill = Normalized_Difference)) +
   geom_bar(stat = "identity") +
   theme_minimal() +
-  labs(title = "Normalized Difference in Mean Before and After Imputation (2024)",
+  labs(title = "Normalized Difference in Mean Before and After Half-min Imputation (2024)",
        x = "Metabolite",
        y = "Normalized Difference") +
   theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
@@ -481,23 +481,23 @@ ggplot(mean_comparison24, aes(x = Metabolite, y = Normalized_Difference, fill = 
 
 #plot the density of the normalized difference
 ggplot(mean_comparison23, aes(x = Normalized_Difference)) +
-  geom_density(fill = "blue", alpha = 0.4, color = "black") +  # Density plot
+  geom_density(fill = "blue", alpha = 0.4, color = "black") +  #density plot
   theme_minimal() +
-  labs(title = "Density Plot of Normalized Difference (2023)",
+  labs(title = "Density Plot of Normalized Difference with Half-min Imputation (2023)",
        x = "Normalized Difference",
        y = "Density") +
-  xlim(-0.2,0.2)
-  geom_vline(xintercept = 0, linetype = "dashed", color = "red")  # Reference line at 0
+  xlim(-0.2,0.2) +
+  geom_vline(xintercept = 0, linetype = "dashed", color = "red")  #reference line at 0
 
 #plot the density of the normalized difference
 ggplot(mean_comparison24, aes(x = Normalized_Difference)) +
-  geom_density(fill = "blue", alpha = 0.4, color = "black") +  # Density plot
+  geom_density(fill = "blue", alpha = 0.4, color = "black") +  #density plot
   theme_minimal() +
-  labs(title = "Density Plot of Normalized Difference (2024)",
+  labs(title = "Density Plot of Normalized Difference with Half-min Imputation (2024)",
        x = "Normalized Difference",
        y = "Density") +
-  xlim(-0.4,0.4)
-  geom_vline(xintercept = 0, linetype = "dashed", color = "red")  # Reference line at 0
+  xlim(-0.4,0.4) +
+  geom_vline(xintercept = 0, linetype = "dashed", color = "red")  #reference line at 0
 
 dev.off()
 
