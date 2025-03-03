@@ -13,6 +13,14 @@ library(dplyr)
 final_data_2023 <- read.csv("/Users/marcinebessire/Desktop/project/Final_Data_2023.csv", check.names = FALSE)
 final_data_2024 <- read.csv("/Users/marcinebessire/Desktop/project/Final_Data_2024.csv", check.names = FALSE)
 
+#load original common metabolites
+original_23 <- read.csv("/Users/marcinebessire/Desktop/project/Common_Metabolites23.csv", check.names = FALSE)
+original_24 <- read.csv("/Users/marcinebessire/Desktop/project/Common_Metabolites24.csv", check.names = FALSE)
+
+#keep only numeric columns
+original_23_metabolites <- original_23[, 6:ncol(original_23)]
+original_24_metabolites <- original_24[, 6:ncol(original_24)]
+
 #imputation for cut 2024
 #cut_2024 <- read.csv("/Users/marcinebessire/Desktop/project/Cut_Common_Metabolites24.csv", check.names = FALSE)
 #cut_2023 <- read.csv("/Users/marcinebessire/Desktop/project/Cut_Common_Metabolites23.csv", check.names = FALSE)
@@ -176,6 +184,7 @@ ggplot(test_results, aes(x = Test, y = Count, fill = Category)) +
   geom_text(aes(label = Count), position = position_dodge(width = 0.9), vjust = -0.5)  #add labels
 
 dev.off()
+
 # Part 5 -------
 # Correlation Coefficient for each year (between CV (values before imputation) and Metabolite after Half min Imputation)
 
@@ -239,16 +248,65 @@ cor_24_filtered <- cor(filtered_24$`CV [%]`, filtered_24$adj_p_value, method = "
 print(paste("Filtered Correlation for 2023:", cor_23_filtered)) #-0.2676
 print(paste("Filtered Correlation for 2024:", cor_24_filtered)) #-0.2495
 
-# Part 6 -----
+dev.off()
+# # Part 6 -------
+# # check correlation coefficient before and after imputaiton for each year
+# 
+# #correlation Check, compare correlation matrices
+# cor_before_23 <- cor(original_23_metabolites, use = "pairwise.complete.obs")
+# cor_after_23 <- cor(half_min_23_metabolites)
+# 
+# cor_before_24 <- cor(original_24_metabolites, use = "pairwise.complete.obs")
+# cor_after_24 <- cor(half_min_24_metabolites)
+# 
+# # Scatter plot 
+# #identify missing vlaues 
+# missing_val23 <- is.na(original_23_metabolites) #99
+# missing_val24 <- is.na(original_24_metabolites) #526
+# 
+# 
+# #create logical matrix identifying if a pair of metabolites had missing values
+# missing_pairs23 <- (missing_val23 %*% t(missing_val23)) > 0 #True 
+# missing_pairs24 <- (missing_val24 %*% t(missing_val24)) > 0
+# 
+# #extract upper triangular part of matrix 
+# #2023
+# imputed_indices23 <- missing_pairs23[upper.tri(missing_pairs23, diag = FALSE)]
+# cor_values_before23 <- cor_before_23[upper.tri(cor_before_23, diag = FALSE)]
+# cor_values_after23 <- cor_after_23[upper.tri(cor_after_23, diag = FALSE)]
+# 
+# #2024
+# imputed_indices24 <- missing_pairs24[upper.tri(missing_pairs24, diag = FALSE)]
+# cor_values_before24 <- cor_before_24[upper.tri(cor_before_24, diag = FALSE)]
+# cor_values_after24 <- cor_after_24[upper.tri(cor_after_24, diag = FALSE)]
+# 
+# pdf("/Users/marcinebessire/Desktop/project/Halfmin_Correlation_Comparison.pdf", width = 8, height = 6)
+# 
+# #2023
+# plot(cor_values_before23, cor_values_after23,
+#      xlab = "Before Imputation",
+#      ylab = "After Imputation",
+#      main = "Correlation Comparison",
+#      col = ifelse(imputed_indices23, "red", "blue"), #red for imputed pairs
+#      pch = 19) 
+# 
+# abline(0,1,col = "black", lwd = 2) #ideally points should line on line
+# 
+# #2024
+# plot(cor_values_before24, cor_values_after24,
+#      xlab = "Before Imputation",
+#      ylab = "After Imputation",
+#      main = "Correlation Comparison",
+#      col = ifelse(imputed_indices24, "red", "blue"), #red for imputed pairs
+#      pch = 19) 
+# 
+# abline(0,1,col = "black", lwd = 2) #ideally points should line on line
+# 
+# dev.off()
+
+
+# Part 7 -----
 # Distribution plot of data before and after Imputation 
-
-#load original common metabolites
-original_23 <- read.csv("/Users/marcinebessire/Desktop/project/Common_Metabolites23.csv", check.names = FALSE)
-original_24 <- read.csv("/Users/marcinebessire/Desktop/project/Common_Metabolites24.csv", check.names = FALSE)
-
-#keep only numeric columns
-original_23_metabolites <- original_23[, 6:ncol(original_23)]
-original_24_metabolites <- original_24[, 6:ncol(original_24)]
 
 #2023
 #convert data to long format for visualization
@@ -258,9 +316,27 @@ half_min_23_long <- half_min_23_metabolites %>%
 original_23_long <- original_23_metabolites %>%
   pivot_longer(cols = everything(), names_to = "Metabolite", values_to = "Original_Value")
 
-#merge the original and imputed datasets
-comparison_23 <- left_join(original_23_long, half_min_23_long, by = "Metabolite") %>%
-  pivot_longer(cols = c("Original_Value", "Imputed_Value"), names_to = "Dataset", values_to = "Value")
+#identify imputed values => missing values were replaced by half of the minimum observed value.
+imputed_only_23 <- original_23_long %>%
+  mutate(Imputed = is.na(Original_Value)) %>%
+  filter(Imputed) %>%
+  select(Metabolite) %>%
+  inner_join(half_min_23_long, by = "Metabolite") %>%
+  mutate(Dataset = "Imputed_Only")
+
+#merge original and imputed datasets
+comparison_23 <- original_23_long %>%
+  left_join(half_min_23_long, by = "Metabolite") %>%
+  pivot_longer(cols = c("Original_Value", "Imputed_Value"), 
+               names_to = "Dataset", values_to = "Value")
+
+#add Imputed_Only as a separate dataset
+imputed_only_23 <- imputed_only_23 %>%
+  mutate(Value = Imputed_Value, Dataset = "Imputed_Only") %>%
+  select(Metabolite, Dataset, Value)
+
+#combine both datasets
+comparison_23 <- bind_rows(comparison_23, imputed_only_23)
 
 #2024
 #convert data to long format for visualization
@@ -270,40 +346,61 @@ half_min_24_long <- half_min_24_metabolites %>%
 original_24_long <- original_24_metabolites %>%
   pivot_longer(cols = everything(), names_to = "Metabolite", values_to = "Original_Value")
 
-#merge the original and imputed datasets
-comparison_24 <- left_join(original_24_long, half_min_24_long, by = "Metabolite") %>%
-  pivot_longer(cols = c("Original_Value", "Imputed_Value"), names_to = "Dataset", values_to = "Value")
+#identify imputed values => missing values were replaced by half of the minimum observed value.
+imputed_only_24 <- original_24_long %>%
+  mutate(Imputed = is.na(Original_Value)) %>%
+  filter(Imputed) %>%
+  select(Metabolite) %>%
+  inner_join(half_min_24_long, by = "Metabolite") %>%
+  mutate(Dataset = "Imputed_Only")
+
+#merge original and imputed datasets
+comparison_24 <- original_24_long %>%
+  left_join(half_min_24_long, by = "Metabolite") %>%
+  pivot_longer(cols = c("Original_Value", "Imputed_Value"), 
+               names_to = "Dataset", values_to = "Value")
+
+#add Imputed_Only as a separate dataset
+imputed_only_24 <- imputed_only_24 %>%
+  mutate(Value = Imputed_Value, Dataset = "Imputed_Only") %>%
+  select(Metabolite, Dataset, Value)
+
+#combine both datasets
+comparison_24 <- bind_rows(comparison_24, imputed_only_24)
 
 #Now plot 
 #open a PDF device to save multiple plots
 pdf("/Users/marcinebessire/Desktop/project/Halfmin_Distribution_Comparison.pdf", width = 8, height = 6)
 
-#2023
-#plot density distributions for original and imputed data separately
-ggplot(comparison_23, aes(x = Value, fill = Dataset, color = Dataset)) +
-  geom_density(alpha = 0.4) +  # Density plot with transparency
-  theme_minimal() +
-  labs(title = "Distribution of Metabolites Before and After Half-min Imputation (2023)",
+#2023 plot 
+ggplot(comparison_23, aes(x = Value, fill = Dataset)) +
+  geom_density(alpha = 0.5) +  # Transparency for overlapping
+  labs(title = "Distribution of Original, Imputed, and Imputed_Only Values (2023)",
        x = "Metabolite Value",
        y = "Density") +
-  xlim(-10,200)
-theme(legend.position = "right")
+  theme_minimal() + 
+  scale_fill_manual(values = c("Original_Value" = "lightblue", 
+                               "Imputed_Value" = "red", 
+                               "Imputed_Only" = "green")) +
+  xlim(-10,50)
 
 #2024 plot
 #plot density distributions for original and imputed data separately
-ggplot(comparison_24, aes(x = Value, fill = Dataset, color = Dataset)) +
-  geom_density(alpha = 0.4) +  # Density plot with transparency
-  theme_minimal() +
-  labs(title = "Distribution of Metabolites Before and After Half-min Imputation (2024)",
+ggplot(comparison_24, aes(x = Value, fill = Dataset)) +
+  geom_density(alpha = 0.5) +  # Transparency for overlapping
+  labs(title = "Distribution of Original, Imputed, and Imputed_Only Values (2024)",
        x = "Metabolite Value",
        y = "Density") +
-  xlim(-10,200)
-  theme(legend.position = "right")
+  theme_minimal() + 
+  scale_fill_manual(values = c("Original_Value" = "lightblue", 
+                               "Imputed_Value" = "red", 
+                               "Imputed_Only" = "green")) +
+  xlim(-10,50)
   
 
 dev.off()
 
-# Part 7 ------
+# Part 8 ------
 # calculate normalized difference of each imputation (before and after) and plot
 
 #mean before imputation
@@ -346,7 +443,7 @@ pdf("/Users/marcinebessire/Desktop/project/Halfmin_Normalized_Difference_Compari
 ggplot(mean_comparison23, aes(x = Metabolite, y = Normalized_Difference, fill = Normalized_Difference)) +
   geom_bar(stat = "identity") +
   theme_minimal() +
-  labs(title = "Normalized Difference in Mean Before and After Imputation",
+  labs(title = "Normalized Difference in Mean Before and After Imputation (2023)",
        x = "Metabolite",
        y = "Normalized Difference") +
   theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
@@ -357,7 +454,7 @@ ggplot(mean_comparison23, aes(x = Metabolite, y = Normalized_Difference, fill = 
 ggplot(mean_comparison24, aes(x = Metabolite, y = Normalized_Difference, fill = Normalized_Difference)) +
   geom_bar(stat = "identity") +
   theme_minimal() +
-  labs(title = "Normalized Difference in Mean Before and After Imputation",
+  labs(title = "Normalized Difference in Mean Before and After Imputation (2024)",
        x = "Metabolite",
        y = "Normalized Difference") +
   theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
@@ -367,7 +464,7 @@ ggplot(mean_comparison24, aes(x = Metabolite, y = Normalized_Difference, fill = 
 ggplot(mean_comparison23, aes(x = Normalized_Difference)) +
   geom_density(fill = "blue", alpha = 0.4, color = "black") +  # Density plot
   theme_minimal() +
-  labs(title = "Density Plot of Normalized Difference",
+  labs(title = "Density Plot of Normalized Difference (2023)",
        x = "Normalized Difference",
        y = "Density") +
   xlim(-0.2,0.2)
@@ -377,7 +474,7 @@ ggplot(mean_comparison23, aes(x = Normalized_Difference)) +
 ggplot(mean_comparison24, aes(x = Normalized_Difference)) +
   geom_density(fill = "blue", alpha = 0.4, color = "black") +  # Density plot
   theme_minimal() +
-  labs(title = "Density Plot of Normalized Difference",
+  labs(title = "Density Plot of Normalized Difference (2024)",
        x = "Normalized Difference",
        y = "Density") +
   xlim(-0.4,0.4)

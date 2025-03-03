@@ -37,7 +37,6 @@ results_Wilcoxon_KNN <- data.frame(
   statistic = numeric(length(metabolite_cols))
 )
 
-
 #loop through each metabolite and run Wilcoxon rank-sum test
 for (i in seq_along(metabolite_cols)) {
   metabolite <- metabolite_cols[i]
@@ -122,7 +121,7 @@ for (i in 1:9) {
           main = paste("Metabolite", colnames(imputed_KNN23)[i]),
           col = c("lightblue", "lightgreen"))
 }
-
+dev.off()
 #Correlation Check, compare correlation matrices
 cor_before_23 <- cor(numeric23, use = "pairwise.complete.obs")
 cor_after_23 <- cor(imputed_KNN23)
@@ -150,8 +149,8 @@ imputed_indices24 <- missing_pairs24[upper.tri(missing_pairs24, diag = FALSE)]
 cor_values_before24 <- cor_before_24[upper.tri(cor_before_24, diag = FALSE)]
 cor_values_after24 <- cor_after_24[upper.tri(cor_after_24, diag = FALSE)]
 
+pdf("/Users/marcinebessire/Desktop/project/KNN_Correlation_Comparison.pdf", width = 8, height = 6)
 
-dev.off()
 #2023
 plot(cor_values_before23, cor_values_after23,
      xlab = "Before Imputation",
@@ -172,3 +171,4 @@ plot(cor_values_before24, cor_values_after24,
 
 abline(0,1,col = "black", lwd = 2) #ideally points should line on line
 
+dev.off()
