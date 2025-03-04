@@ -4,6 +4,7 @@ library(corrplot) #for correlaion coefficient calculation
 library(ggplot2)
 library(dplyr)
 library(tidyr)
+library(tidyverse)
 
 # Part 1 -------
 # Perform KNN imputation of Missing values 
@@ -241,7 +242,7 @@ calculate_normalized_difference <- function(original_data, imputed_data, year, o
   p2 <- ggplot(mean_comparison, aes(x = Normalized_Difference)) +
     geom_density(fill = "blue", alpha = 0.4, color = "black") +  # Density plot
     theme_minimal() +
-    labs(title = paste("Density Plot of Normalized Difference (", year, ")", sep = ""),
+    labs(title = paste("Density Plot of Normalized Difference with KNN Imputation (", year, ")", sep = ""),
          x = "Normalized Difference",
          y = "Density") +
     xlim(-0.4, 0.4) +
