@@ -60,8 +60,8 @@ check_significance <- function(data) {
 }
 
 #check significance 
-res_23 <- check_significance(t_test_23)
-res_24 <- check_significance(t_test_24) #also 0 
+res_23 <- check_significance(t_test_23) #0
+res_24 <- check_significance(t_test_24) #0 
 
 # Significance test for Before and After New Chip from Data 2024
 #cut data of 2024 into two parts (before and after new chip)
@@ -69,7 +69,8 @@ before_chip_data24 <- data24 %>% #before new chip
   filter(MonthDay < "09-10") 
 after_chip_data24 <- anti_join(data24,before_chip_data24) #after new chip 
 
-func_before_after <- function(data1, data2) {
+#T-TEST
+func_before_after_t_test <- function(data1, data2) {
   #select only metabolite columns (starting from column 6)
   df_1 <- data1[, 6:ncol(data1)]
   df_2 <- data2[, 6:ncol(data2)]
@@ -105,7 +106,46 @@ func_before_after <- function(data1, data2) {
 }
 
 #perform t_test
-t_test_before_after24 <- func_before_after(before_chip_data24, after_chip_data24)
-
+t_test_before_after24 <- func_before_after_t_test(before_chip_data24, after_chip_data24)
 #check significance 
 res_before_after24 <- check_significance(t_test_before_after24) #34 
+
+#WILCOX
+func_before_after_wilcox <- function(data1, data2) {
+  #select only metabolite columns (starting from column 6)
+  df_1 <- data1[, 6:ncol(data1)]
+  df_2 <- data2[, 6:ncol(data2)]
+  
+  #get metabolite column names
+  metabolite_cols <- colnames(df_1)
+  
+  #Run wilcoxon for each metabolite 
+  #dataframe for the results
+  results_wilcox <- data.frame(
+    Metabolite = metabolite_cols,
+    p_value = numeric(length(metabolite_cols)),
+    statistic = numeric(length(metabolite_cols))
+  )
+  
+  #loop through each metabolite and run t-test for each metabolites
+  for (i in seq_along(metabolite_cols)) {
+    metabolite <- metabolite_cols[i]
+    
+    #use Welchs test here (not same variance, to test H0 where two groups have equal mean)
+    test_result <- wilcox.test(df_1[[metabolite]], df_2[[metabolite]], paired = FALSE, exact = FALSE)
+    
+    #save results to dataframe
+    results_wilcox$p_value[i] <- test_result$p.value
+    results_wilcox$statistic[i] <- test_result$statistic
+  }
+  
+  #adjust p-value for multiple testing (Benjamini-Hochberg)
+  results_wilcox$adj_p_value <- p.adjust(results_wilcox$p_value, method = "BH")
+  
+  return(results_wilcox)
+}
+
+#perform wilocx
+wilcox_before_after24 <- func_before_after_wilcox(before_chip_data24, after_chip_data24)
+#check significance 
+wilcoxres_before_after24 <- check_significance(wilcox_before_after24) #17
