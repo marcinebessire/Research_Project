@@ -10,8 +10,8 @@ library(tidyverse)
 # Perform KNN imputation of Missing values 
 
 #load data 
-data23 <- read.csv("/Users/marcinebessire/Desktop/project/CV_Common_Metabolites23.csv", check.names = FALSE)
-data24 <- read.csv("/Users/marcinebessire/Desktop/project/CV_Common_Metabolites24.csv", check.names = FALSE)
+data23 <- read.csv("/Users/marcinebessire/Desktop/project/Common_Metabolites23.csv", check.names = FALSE)
+data24 <- read.csv("/Users/marcinebessire/Desktop/project/Common_Metabolites24.csv", check.names = FALSE)
 
 #numeric data 
 numeric23 <- data23[, 6:ncol(data23)]
