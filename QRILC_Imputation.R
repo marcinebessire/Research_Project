@@ -10,24 +10,24 @@ library(corrplot)
 # QRILC Imputation
 
 #whole data 
-data23 <- read.csv("/Users/marcinebessire/Desktop/project/Common_Metabolites23.csv", check.names = FALSE)
-data24 <- read.csv("/Users/marcinebessire/Desktop/project/Common_Metabolites24.csv", check.names = FALSE)
+data23 <- read.csv("/Users/marcinebessire/Desktop/project/CV_Common_Metabolites23.csv", check.names = FALSE)
+data24 <- read.csv("/Users/marcinebessire/Desktop/project/CV_Common_Metabolites24.csv", check.names = FALSE)
 
 #remove metadata from whole data to get numeric data 
 numeric23 <- data23[, 6:ncol(data23)]
 numeric24 <- data24[, 6:ncol(data24)]
 
 #count missing values 
-mv23 <- sum(is.na(numeric23)) #99 MV
-mv24 <- sum(is.na(numeric24)) #526 MV
+mv23 <- sum(is.na(numeric23)) #99 MV (26 with CV)
+mv24 <- sum(is.na(numeric24)) #526 MV (333 with CV)
 
 #total values 
 tot23 <- nrow(numeric23) * ncol(numeric24) #6972
 tot24 <- nrow(numeric24) * ncol(numeric24) #6048
 
 #percentage of missing values 
-percentage_mv23 <- (mv23 / tot23) * 100 #1.419%
-percentage_mv24 <- (mv24 / tot24) * 100 #8.697%
+percentage_mv23 <- (mv23 / tot23) * 100 #1.419% (0.522)
+percentage_mv24 <- (mv24 / tot24) * 100 #8.697% (7.708)
 
 #needs transformation to matrix 
 numeric23 <- as.matrix(numeric23)
@@ -129,7 +129,7 @@ adjust_p_values <- function(results, alpha = 0.05) {
   return(significant_results)
 }
 
-significant_Wilcoxon_QRILC <- adjust_p_values(results_Wilcoxon_QRILC) #80
+significant_Wilcoxon_QRILC <- adjust_p_values(results_Wilcoxon_QRILC) #80 and 59 with CV
 #significant_Wilcoxon_QRILC2 <- adjust_p_values(results_Wilcoxon_QRILC2) #80
 
 # Part 3 -------
@@ -166,7 +166,7 @@ results_t_test_QRILC <- t_test(QRILC23, QRILC24)
 #results_t_test_QRILC2 <- t_test(QRILC23_2, QRILC24_2)
 
 #check significance 
-significant_t_test_QRILC <- adjust_p_values(results_t_test_QRILC) #80
+significant_t_test_QRILC <- adjust_p_values(results_t_test_QRILC) #80 and 58 with CV
 #significant_t_test_QRILC2 <- adjust_p_values(results_t_test_QRILC2) #81
 
 #grouped bar plot 
@@ -185,7 +185,7 @@ test_results <- data.frame(
             significant_ttest, total_metabolites - significant_ttest)
 )
 
-pdf("/Users/marcinebessire/Desktop/project/QRILC_Significance.pdf", width = 10, height = 6)
+pdf("/Users/marcinebessire/Desktop/project/QRILC_Significance_CV30.pdf", width = 10, height = 6)
 
 #plot grouped bar chart
 ggplot(test_results, aes(x = Test, y = Count, fill = Category)) +
@@ -214,9 +214,9 @@ shapiro_df24 <- data.frame(Metabolite = names(shapiro_results24), p_value = shap
 
 #if p-value < 0.05 then not normal distribution
 non_normal_count23 <- sum(shapiro_df23$p_value < 0.05)
-non_normal_count23 #61 metabolites are non-normal distributed 
+non_normal_count23 #61 metabolites are non-normal distributed 43 with CV
 non_normal_count24 <- sum(shapiro_df24$p_value < 0.05)
-non_normal_count24 #48 metabolites are non-normal distributed 
+non_normal_count24 #48 metabolites are non-normal distributed 28 with CV
 
 
 # Part 4 -----
@@ -262,7 +262,7 @@ plot_imputation_distribution <- function(original_data, imputed_data, year, outp
   #generate the plot
   p <- ggplot(comparison, aes(x = Value, fill = Dataset)) +
     geom_density(alpha = 0.5) +  # Transparency for overlapping
-    labs(title = paste("Distribution of Original Data, Imputed Data, and Imputed Values (", year, ")", sep = ""),
+    labs(title = paste("Distribution of Original Data, Imputed Data, and Imputed Values with CV filtering (", year, ")", sep = ""),
          x = "Metabolite Value",
          y = "Density") +
     theme_minimal() + 
@@ -275,8 +275,8 @@ plot_imputation_distribution <- function(original_data, imputed_data, year, outp
   dev.off()
 }
 
-density_plot_QRILC_23 <- plot_imputation_distribution(numeric_QRILC23, QRILC23, "2023", "/Users/marcinebessire/Desktop/project/QRILC_Distribution_Comparison23.pdf")
-density_plot_QRILC_24 <- plot_imputation_distribution(numeric_QRILC24, QRILC24, "2024", "/Users/marcinebessire/Desktop/project/QRILC_Distribution_Comparison24.pdf")
+density_plot_QRILC_23 <- plot_imputation_distribution(numeric_QRILC23, QRILC23, "2023", "/Users/marcinebessire/Desktop/project/QRILC_Distribution_Comparison23_CV30.pdf")
+density_plot_QRILC_24 <- plot_imputation_distribution(numeric_QRILC24, QRILC24, "2024", "/Users/marcinebessire/Desktop/project/QRILC_Distribution_Comparison24_CV30.pdf")
 
 # Part 5 ------
 # calculate normalized difference of each imputation (before and after) and plot
@@ -306,7 +306,7 @@ calculate_normalized_difference <- function(original_data, imputed_data, year, o
   p1 <- ggplot(mean_comparison, aes(x = Metabolite, y = Normalized_Difference, fill = Normalized_Difference)) +
     geom_bar(stat = "identity") +
     theme_minimal() +
-    labs(title = paste("Normalized Difference in Mean Before and After Imputation (", year, ")", sep = ""),
+    labs(title = paste("Normalized Difference in Mean Before and After Imputation with CV filtering (", year, ")", sep = ""),
          x = "Metabolite",
          y = "Normalized Difference") +
     theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
@@ -318,7 +318,7 @@ calculate_normalized_difference <- function(original_data, imputed_data, year, o
   p2 <- ggplot(mean_comparison, aes(x = Normalized_Difference)) +
     geom_density(fill = "blue", alpha = 0.4, color = "black") +  # Density plot
     theme_minimal() +
-    labs(title = paste("Density Plot of Normalized Difference with QRILC Imputation (", year, ")", sep = ""),
+    labs(title = paste("Density Plot of Normalized Difference with QRILC Imputation and CV filtering (", year, ")", sep = ""),
          x = "Normalized Difference",
          y = "Density") +
     xlim(-0.4, 0.4) +
@@ -329,8 +329,8 @@ calculate_normalized_difference <- function(original_data, imputed_data, year, o
   dev.off()
 }
 
-normalized_difference23 <- calculate_normalized_difference(numeric_QRILC23, QRILC23, "2023", "/Users/marcinebessire/Desktop/project/QRILC_normalized_difference23.pdf")
-normalized_difference24 <- calculate_normalized_difference(numeric_QRILC24, QRILC24, "2024", "/Users/marcinebessire/Desktop/project/QRILC_normalized_difference24.pdf")
+normalized_difference23 <- calculate_normalized_difference(numeric_QRILC23, QRILC23, "2023", "/Users/marcinebessire/Desktop/project/QRILC_normalized_difference23_CV30.pdf")
+normalized_difference24 <- calculate_normalized_difference(numeric_QRILC24, QRILC24, "2024", "/Users/marcinebessire/Desktop/project/QRILC_normalized_difference24_CV30.pdf")
 
 
 # # Extra part with correlation ----- 

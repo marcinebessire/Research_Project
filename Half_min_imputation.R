@@ -4,23 +4,27 @@ library(ggplot2)
 library(corrplot)
 library(readr)
 library(stringr)
-
+library(tidyr)
 library(dplyr)
 
 # Part 1 ------
 # Perform Half-min imputation
 
-#load data 
-final_data_2023 <- read.csv("/Users/marcinebessire/Desktop/project/Final_Data_2023.csv", check.names = FALSE)
-final_data_2024 <- read.csv("/Users/marcinebessire/Desktop/project/Final_Data_2024.csv", check.names = FALSE)
+#load data with CV threshold 30
+final_data_2023 <- read.csv("/Users/marcinebessire/Desktop/project/CV_Final_Data_2023.csv", check.names = FALSE)
+final_data_2024 <- read.csv("/Users/marcinebessire/Desktop/project/CV_Final_Data_2024.csv", check.names = FALSE)
 
 #load original common metabolites
-original_23 <- read.csv("/Users/marcinebessire/Desktop/project/Common_Metabolites23.csv", check.names = FALSE)
-original_24 <- read.csv("/Users/marcinebessire/Desktop/project/Common_Metabolites24.csv", check.names = FALSE)
+original_23 <- read.csv("/Users/marcinebessire/Desktop/project/CV_Common_Metabolites23.csv", check.names = FALSE)
+original_24 <- read.csv("/Users/marcinebessire/Desktop/project/CV_Common_Metabolites24.csv", check.names = FALSE)
 
 #keep only numeric columns
 original_23_metabolites <- original_23[, 6:ncol(original_23)]
 original_24_metabolites <- original_24[, 6:ncol(original_24)]
+
+#count how many missing values are there
+mv23 <- sum(is.na(original_23_metabolites)) #26 MV out of 4980 => 0.522%
+mv24 <- sum(is.na(original_24_metabolites)) #333 MV out of 4320 => 7.708%
 
 #imputation for cut 2024
 #cut_2024 <- read.csv("/Users/marcinebessire/Desktop/project/Cut_Common_Metabolites24.csv", check.names = FALSE)
@@ -65,7 +69,7 @@ cols_df2 <- setdiff(colnames(imputed_data_24), exclude_cols)
 common_cols <- intersect(cols_df1, cols_df2)
 
 #visualize results
-cat("Number of common columns:", length(common_cols), "\n") #84
+cat("Number of common columns:", length(common_cols), "\n") #84 and 60 if CV 30%
 cat("Common columns:", paste(common_cols, collapse=", ")) 
 
 #make new dataframe for each year with those 84 columns + metadata
@@ -119,7 +123,7 @@ significant_results_Wilcoxon <- results_Wilcoxon %>%
   filter(adj_p_value < 0.05) %>% #usually 0.05 used 
   arrange(adj_p_value)
 
-print(significant_results_Wilcoxon) #78 out of 84
+print(significant_results_Wilcoxon) #78 out of 84 and if CV 30% then 56/60
 
 
 # Part 4 -------
@@ -153,7 +157,7 @@ significant_results_ttest <- results_ttest %>%
   filter(adj_p_value < 0.05) %>% #usually 0.05 used 
   arrange(adj_p_value)
 
-print(significant_results_ttest) #74 out of 84
+print(significant_results_ttest) #74 out of 84 and with CV 30% 53/60
 
 #grouped bar plot 
 #count total number of metabolites
@@ -171,7 +175,7 @@ test_results <- data.frame(
             significant_ttest, total_metabolites - significant_ttest)
 )
 
-pdf("/Users/marcinebessire/Desktop/project/Halfmin_Significance.pdf", width = 10, height = 6)
+pdf("/Users/marcinebessire/Desktop/project/Halfmin_Significance_CV30.pdf", width = 10, height = 6)
 
 #plot grouped bar chart
 ggplot(test_results, aes(x = Test, y = Count, fill = Category)) +
@@ -200,9 +204,9 @@ shapiro_df24 <- data.frame(Metabolite = names(shapiro_results24), p_value = shap
 
 #if p-value < 0.05 then not normal distribution
 non_normal_count23 <- sum(shapiro_df23$p_value < 0.05)
-non_normal_count23 #64 metabolites are non-normal distributed 
+non_normal_count23 #64 metabolites are non-normal distributed and with CV 47
 non_normal_count24 <- sum(shapiro_df24$p_value < 0.05)
-non_normal_count24 #84 metabolites are non-normal distributed 
+non_normal_count24 #84 metabolites are non-normal distributed and with CV 60
 
 # Part 5 -------
 # Correlation Coefficient for each year (between CV (values before imputation) and Metabolite after Half min Imputation)
@@ -390,12 +394,12 @@ comparison_24 <- bind_rows(comparison_24, imputed_only_24)
 
 #Now plot 
 #open a PDF device to save multiple plots
-pdf("/Users/marcinebessire/Desktop/project/Halfmin_Distribution_Comparison.pdf", width = 8, height = 6)
+pdf("/Users/marcinebessire/Desktop/project/Halfmin_Distribution_Comparison_CV30.pdf", width = 8, height = 6)
 
 #2023 plot 
 ggplot(comparison_23, aes(x = Value, fill = Dataset)) +
   geom_density(alpha = 0.5) +  # Transparency for overlapping
-  labs(title = "Distribution of Original Data, Imputed Data, and Imputed Values (2023)",
+  labs(title = "Distribution of Original Data, Imputed Data, and Imputed Values with CV cut-off 30% (2023)",
        x = "Metabolite Value",
        y = "Density") +
   theme_minimal() + 
@@ -408,7 +412,7 @@ ggplot(comparison_23, aes(x = Value, fill = Dataset)) +
 #plot density distributions for original and imputed data separately
 ggplot(comparison_24, aes(x = Value, fill = Dataset)) +
   geom_density(alpha = 0.5) +  # Transparency for overlapping
-  labs(title = "Distribution of Original Data, Imputed Data, and Imputed Values (2024)",
+  labs(title = "Distribution of Original Data, Imputed Data, and Imputed Values with CV cut-off 30% (2024)",
        x = "Metabolite Value",
        y = "Density") +
   theme_minimal() + 
@@ -417,9 +421,7 @@ ggplot(comparison_24, aes(x = Value, fill = Dataset)) +
                                "Imputed_Values" = "green")) +
   xlim(-10,50)
   
-
 dev.off()
-
 
 
 # Part 8 ------
@@ -464,13 +466,13 @@ mean_comparison24 <- left_join(mean_before24, mean_after24, by = "Metabolite")
 mean_comparison24 <- mean_comparison24 %>%
   mutate(Normalized_Difference = (Mean_After - Mean_Before) / Mean_Before)
 
-pdf("/Users/marcinebessire/Desktop/project/Halfmin_Normalized_Difference_Comparison.pdf", width = 10, height = 6)
+pdf("/Users/marcinebessire/Desktop/project/Halfmin_Normalized_Difference_Comparison_CV30.pdf", width = 10, height = 6)
 
 #plot normalized difference
 ggplot(mean_comparison23, aes(x = Metabolite, y = Normalized_Difference, fill = Normalized_Difference)) +
   geom_bar(stat = "identity") +
   theme_minimal() +
-  labs(title = "Normalized Difference in Mean Before and After Half-min Imputation (2023)",
+  labs(title = "Normalized Difference in Mean Before and After Half-min Imputation with CV filtering (2023)",
        x = "Metabolite",
        y = "Normalized Difference") +
   theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
@@ -481,7 +483,7 @@ ggplot(mean_comparison23, aes(x = Metabolite, y = Normalized_Difference, fill = 
 ggplot(mean_comparison24, aes(x = Metabolite, y = Normalized_Difference, fill = Normalized_Difference)) +
   geom_bar(stat = "identity") +
   theme_minimal() +
-  labs(title = "Normalized Difference in Mean Before and After Half-min Imputation (2024)",
+  labs(title = "Normalized Difference in Mean Before and After Half-min Imputation CV filtering  (2024)",
        x = "Metabolite",
        y = "Normalized Difference") +
   theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
@@ -491,7 +493,7 @@ ggplot(mean_comparison24, aes(x = Metabolite, y = Normalized_Difference, fill = 
 ggplot(mean_comparison23, aes(x = Normalized_Difference)) +
   geom_density(fill = "blue", alpha = 0.4, color = "black") +  #density plot
   theme_minimal() +
-  labs(title = "Density Plot of Normalized Difference with Half-min Imputation (2023)",
+  labs(title = "Density Plot of Normalized Difference with Half-min Imputation and CV filtering (2023)",
        x = "Normalized Difference",
        y = "Density") +
   xlim(-0.2,0.2) +
@@ -501,7 +503,7 @@ ggplot(mean_comparison23, aes(x = Normalized_Difference)) +
 ggplot(mean_comparison24, aes(x = Normalized_Difference)) +
   geom_density(fill = "blue", alpha = 0.4, color = "black") +  #density plot
   theme_minimal() +
-  labs(title = "Density Plot of Normalized Difference with Half-min Imputation (2024)",
+  labs(title = "Density Plot of Normalized Difference with Half-min Imputation and CV filtering (2024)",
        x = "Normalized Difference",
        y = "Density") +
   xlim(-0.4,0.4) +

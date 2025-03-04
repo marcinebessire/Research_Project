@@ -1,18 +1,17 @@
 #load library
 library(impute) #for impute.knn() function 
-library(corrplot) #for correlaion coefficient calculation
+library(corrplot) #for correlation coefficient calculation
 library(ggplot2)
 library(dplyr)
 library(tidyr)
 library(tidyverse)
-library(moments)  #for skewness and kurtosis
 
 # Part 1 -------
 # Perform KNN imputation of Missing values 
 
 #load data 
-data23 <- read.csv("/Users/marcinebessire/Desktop/project/Common_Metabolites23.csv", check.names = FALSE)
-data24 <- read.csv("/Users/marcinebessire/Desktop/project/Common_Metabolites24.csv", check.names = FALSE)
+data23 <- read.csv("/Users/marcinebessire/Desktop/project/CV_Common_Metabolites23.csv", check.names = FALSE)
+data24 <- read.csv("/Users/marcinebessire/Desktop/project/CV_Common_Metabolites24.csv", check.names = FALSE)
 
 #numeric data 
 numeric23 <- data23[, 6:ncol(data23)]
@@ -64,7 +63,7 @@ significant_results_Wilcoxon_KNN <- results_Wilcoxon_KNN %>%
   filter(adj_p_value < 0.05) %>% #usually 0.05 used 
   arrange(adj_p_value)
 
-print(significant_results_Wilcoxon_KNN) #81 out of 84 were significant 
+print(significant_results_Wilcoxon_KNN) #81 out of 84 were significant and with CV 59/60 significant
 
 # Part 3 -------
 # Run unpaired t-test for each metabolite 
@@ -97,7 +96,7 @@ significant_results_ttest_KNN <- results_ttest_KNN %>%
   filter(adj_p_value < 0.05) %>% #usually 0.05 used 
   arrange(adj_p_value)
 
-print(significant_results_ttest_KNN) #6 out of 84 were significant
+print(significant_results_ttest_KNN) #6 out of 84 were significant and 3/60 with CV
 
 #grouped bar plot 
 #count total number of metabolites
@@ -115,7 +114,7 @@ test_results <- data.frame(
             significant_ttest, total_metabolites - significant_ttest)
 )
 
-pdf("/Users/marcinebessire/Desktop/project/KNN_Significance.pdf", width = 10, height = 6)
+pdf("/Users/marcinebessire/Desktop/project/KNN_Significance_CV30.pdf", width = 10, height = 6)
 
 #plot grouped bar chart
 ggplot(test_results, aes(x = Test, y = Count, fill = Category)) +
@@ -144,9 +143,9 @@ shapiro_df24 <- data.frame(Metabolite = names(shapiro_results24), p_value = shap
 
 #if p-value < 0.05 then not normal distribution
 non_normal_count23 <- sum(shapiro_df23$p_value < 0.05)
-non_normal_count23 #61 metabolites are non-normal distributed 
+non_normal_count23 #61 metabolites are non-normal distributed and 45 with CV
 non_normal_count24 <- sum(shapiro_df24$p_value < 0.05)
-non_normal_count24 #84 metabolites are non-normal distributed 
+non_normal_count24 #84 metabolites are non-normal distributed and 60 with CV
 
 
 # Part 4 -----
@@ -188,7 +187,7 @@ plot_imputation_distribution <- function(original_data, imputed_data, year, outp
   #generate the plot
   p <- ggplot(comparison, aes(x = Value, fill = Dataset)) +
     geom_density(alpha = 0.5) +  # Transparency for overlapping
-    labs(title = paste("Distribution of Original Data, Imputed Data, and Imputed Values (", year, ")", sep = ""),
+    labs(title = paste("Distribution of Original Data, Imputed Data, and Imputed Values with CV filtering (", year, ")", sep = ""),
          x = "Metabolite Value",
          y = "Density") +
     theme_minimal() + 
@@ -201,8 +200,8 @@ plot_imputation_distribution <- function(original_data, imputed_data, year, outp
   dev.off()
 }
 
-density_plot_KNN_23 <- plot_imputation_distribution(numeric23, imputed_KNN23, "2023", "/Users/marcinebessire/Desktop/project/KNN_Distribution_Comparison23.pdf")
-density_plot_KNN_24 <- plot_imputation_distribution(numeric24, imputed_KNN24, "2024", "/Users/marcinebessire/Desktop/project/KNN_Distribution_Comparison24.pdf")
+density_plot_KNN_23 <- plot_imputation_distribution(numeric23, imputed_KNN23, "2023", "/Users/marcinebessire/Desktop/project/KNN_Distribution_Comparison23_CV30.pdf")
+density_plot_KNN_24 <- plot_imputation_distribution(numeric24, imputed_KNN24, "2024", "/Users/marcinebessire/Desktop/project/KNN_Distribution_Comparison24_CV30.pdf")
 
 # #QQ-plot to assess if distribution are the smae 
 # plot_qq_comparison <- function(original_data, imputed_data, year, output_file) {
@@ -266,7 +265,7 @@ calculate_normalized_difference <- function(original_data, imputed_data, year, o
   p1 <- ggplot(mean_comparison, aes(x = Metabolite, y = Normalized_Difference, fill = Normalized_Difference)) +
     geom_bar(stat = "identity") +
     theme_minimal() +
-    labs(title = paste("Normalized Difference in Mean Before and After Imputation (", year, ")", sep = ""),
+    labs(title = paste("Normalized Difference in Mean Before and After Imputation with CV filtering (", year, ")", sep = ""),
          x = "Metabolite",
          y = "Normalized Difference") +
     theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
@@ -278,7 +277,7 @@ calculate_normalized_difference <- function(original_data, imputed_data, year, o
   p2 <- ggplot(mean_comparison, aes(x = Normalized_Difference)) +
     geom_density(fill = "blue", alpha = 0.4, color = "black") +  # Density plot
     theme_minimal() +
-    labs(title = paste("Density Plot of Normalized Difference with KNN Imputation (", year, ")", sep = ""),
+    labs(title = paste("Density Plot of Normalized Difference with KNN Imputation and CV filtering (", year, ")", sep = ""),
          x = "Normalized Difference",
          y = "Density") +
     xlim(-0.4, 0.4) +
@@ -289,8 +288,8 @@ calculate_normalized_difference <- function(original_data, imputed_data, year, o
   dev.off()
 }
 
-normalized_difference23 <- calculate_normalized_difference(numeric23, imputed_KNN23, "2023", "/Users/marcinebessire/Desktop/project/KNN_normalized_difference23.pdf")
-normalized_difference24 <- calculate_normalized_difference(numeric24, imputed_KNN24, "2024", "/Users/marcinebessire/Desktop/project/KNN_normalized_difference24.pdf")
+normalized_difference23 <- calculate_normalized_difference(numeric23, imputed_KNN23, "2023", "/Users/marcinebessire/Desktop/project/KNN_normalized_difference23_CV30.pdf")
+normalized_difference24 <- calculate_normalized_difference(numeric24, imputed_KNN24, "2024", "/Users/marcinebessire/Desktop/project/KNN_normalized_difference24_CV30.pdf")
 
 
 

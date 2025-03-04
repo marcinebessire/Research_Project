@@ -8,9 +8,9 @@ library(tidyverse)
 file_path23 <- "/Users/marcinebessire/Desktop/project/cleaned_data_2023.csv"
 file_path24 <- "/Users/marcinebessire/Desktop/project/cleaned_data_2024.csv"
 
-#load dataset 2023 adn 2024 for common metabolites (before imputation)
-common_path23 <- "/Users/marcinebessire/Desktop/project/Common_Metabolites23.csv"
-common_path24 <- "/Users/marcinebessire/Desktop/project/Common_Metabolites24.csv"
+#load dataset 2023 and 2024 for common metabolites (before imputation)
+#common_path23 <- "/Users/marcinebessire/Desktop/project/Common_Metabolites23.csv"
+#common_path24 <- "/Users/marcinebessire/Desktop/project/Common_Metabolites24.csv"
 
 #write function to caluclate cv for each numeric column in each file
 calculate_cv <- function(file_path){
@@ -54,17 +54,18 @@ calculate_cv <- function(file_path){
 
 #run function for both
 cv_results_2023 <- calculate_cv(file_path23)
-#cv_results_2024 <- calculate_cv(file_path24) do not do that
+cv_results_2024 <- calculate_cv(file_path24) 
 
-#run funciton for both common metabolites
-cv_results_common23 <- calculate_cv(common_path23)
-cv_results_common24 <- calculate_cv(common_path24)
+# #run function for both common metabolites
+# cv_results_common23 <- calculate_cv(common_path23)
+# cv_results_common24 <- calculate_cv(common_path24)
 
-#save results to csv file 
-write_csv(cv_results_common23, "/Users/marcinebessire/Desktop/project/Common_CV_results23.csv")
-write_csv(cv_results_common24, "/Users/marcinebessire/Desktop/project/Common_CV_results24.csv")
+# #save results to csv file 
+# write_csv(cv_results_common23, "/Users/marcinebessire/Desktop/project/Common_CV_results23.csv")
+# write_csv(cv_results_common24, "/Users/marcinebessire/Desktop/project/Common_CV_results24.csv")
+
 # Part 2 -----
-# Remove columns with CV < 20%
+# Remove columns with CV < 30%
 
 #load CV files an cleaned data files
 
@@ -73,17 +74,17 @@ cv_file_2023 <- "/Users/marcinebessire/Desktop/project/CV_results_2023.csv"
 cleaned_data_file_2023 <- "/Users/marcinebessire/Desktop/project/cleaned_data_2023.csv"
 
 #2024
-#cv_file_2024 <- "/Users/marcinebessire/Desktop/project/CV_results_2024.csv"
-#cleaned_data_file_2024 <- "/Users/marcinebessire/Desktop/project/cleaned_data_2024.csv"
+cv_file_2024 <- "/Users/marcinebessire/Desktop/project/CV_results_2024.csv"
+cleaned_data_file_2024 <- "/Users/marcinebessire/Desktop/project/cleaned_data_2024.csv"
 
-#function to filter CV 15-20% and return columns names 
+#function to filter CV and return columns names 
 filter_cv_columns <- function(cv_file, year){
   #load CV table
   cv_df <- read_csv(cv_file)
   
   #filter CV table with threshold 45%
   filtered_cv_df <- cv_df %>%
-    filter(cv_df$`CV [%]` < 45) #filters out values greater than 20
+    filter(cv_df$`CV [%]` < 30) #filters out values greater than 45
   
   #save filter CV table 
   output_path <- paste0("/Users/marcinebessire/Desktop/project/Filtered_CV_", year, ".csv")
@@ -96,13 +97,13 @@ filter_cv_columns <- function(cv_file, year){
 filtered_columns_2023 <- filter_cv_columns(cv_file_2023, "2023")
 
 #process data of 2023
-#filtered_columns_2024 <- filter_cv_columns(cv_file_2024, "2024")
+filtered_columns_2024 <- filter_cv_columns(cv_file_2024, "2024")
 
 #output of filtering CV 2023: before 314, after filtering with 20% 68 and with 15% 14 => kept 20%
 #output of filtering CV 2024: before 660, after filtering with 20% 76 and with 15% 26 => kept 20%
 
 # Part 3 -----
-# Extract columns with CV < 20% in cleaned data files based on name
+# Extract columns with CV < 45% in cleaned data files based on name
 
 filter_data_by_columns <- function(cleaned_data_file, filtered_columns, year){
   #load cleaned dataset 
@@ -119,7 +120,7 @@ filter_data_by_columns <- function(cleaned_data_file, filtered_columns, year){
     select(all_of(metadata_columns), all_of(matching_columns))
   
   #save output
-  output_path <- paste0("/Users/marcinebessire/Desktop/project/Filtered_Data_", year, ".csv")
+  output_path <- paste0("/Users/marcinebessire/Desktop/project/CV_Filtered_Data_", year, ".csv")
   write_csv(filtered_data_df, output_path)
   
   #return the filtered dataset
@@ -130,8 +131,11 @@ filter_data_by_columns <- function(cleaned_data_file, filtered_columns, year){
 #process data for 2023
 filtered_data_2023 <- filter_data_by_columns(cleaned_data_file_2023, filtered_columns_2023, "2023") #should be 5 + 68 = 73 (correct)
 #process data for 2024
-filtered_data_2024 <- df_data_cleaned24 #do not filter according to CV ! 
-output_path24 <- paste0("/Users/marcinebessire/Desktop/project/Filtered_Data_2024.csv")
-write_csv(filtered_data_2024, output_path24)
+filtered_data_2024 <- filter_data_by_columns(cleaned_data_file_2024, filtered_columns_2024, "2024")
+
+# with no CV do this: 
+# filtered_data_2024 <- df_data_cleaned24 
+# output_path24 <- paste0("/Users/marcinebessire/Desktop/project/Filtered_Data_2024.csv")
+# write_csv(filtered_data_2024, output_path24)
 
 

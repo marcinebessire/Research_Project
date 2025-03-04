@@ -8,8 +8,8 @@ library(tidyverse)
 # Random Forest impputation of MV
 
 #load common metabolite dataframe (2023 and 2024) 
-data_23 <- read.csv("/Users/marcinebessire/Desktop/project/Common_Metabolites23.csv", check.names = FALSE)
-data_24 <- read.csv("/Users/marcinebessire/Desktop/project/Common_Metabolites24.csv", check.names = FALSE)
+data_23 <- read.csv("/Users/marcinebessire/Desktop/project/CV_Common_Metabolites23.csv", check.names = FALSE)
+data_24 <- read.csv("/Users/marcinebessire/Desktop/project/CV_Common_Metabolites24.csv", check.names = FALSE)
 
 #Only use nuemric columns for imputation
 numeric_23 <- data_23[, 6:ncol(data_23)]
@@ -69,7 +69,7 @@ significant_results_Wilcoxon_RF <- results_Wilcoxon_RF %>%
   filter(adj_p_value < 0.05) %>% #usually 0.05 used 
   arrange(adj_p_value)
 
-print(significant_results_Wilcoxon_RF) #82 out of 84 were significant 
+print(significant_results_Wilcoxon_RF) #82 out of 84 were significant and with CV 59/60
 
 # Part 3 -------
 # Run unpaired t-test for each metabolite 
@@ -102,7 +102,7 @@ significant_results_ttest_RF <- results_ttest_RF %>%
   filter(adj_p_value < 0.05) %>% #usually 0.05 used 
   arrange(adj_p_value)
 
-print(significant_results_ttest_RF) #80 out of 84 were significant
+print(significant_results_ttest_RF) #80 out of 84 were significant and with CV 59/60
 
 
 #grouped bar plot 
@@ -122,7 +122,7 @@ test_results <- data.frame(
             significant_ttest, total_metabolites - significant_ttest)
 )
 
-pdf("/Users/marcinebessire/Desktop/project/RF_Significance.pdf", width = 10, height = 6)
+pdf("/Users/marcinebessire/Desktop/project/RF_Significance_CV30.pdf", width = 10, height = 6)
 
 #plot grouped bar chart
 ggplot(test_results, aes(x = Test, y = Count, fill = Category)) +
@@ -195,7 +195,7 @@ plot_imputation_distribution <- function(original_data, imputed_data, year, outp
   #generate the plot
   p <- ggplot(comparison, aes(x = Value, fill = Dataset)) +
     geom_density(alpha = 0.5) +  # Transparency for overlapping
-    labs(title = paste("Distribution of Original Data, Imputed Data, and Imputed Values (", year, ")", sep = ""),
+    labs(title = paste("Distribution of Original Data, Imputed Data, and Imputed Values with CV filtering (", year, ")", sep = ""),
          x = "Metabolite Value",
          y = "Density") +
     theme_minimal() + 
@@ -208,8 +208,8 @@ plot_imputation_distribution <- function(original_data, imputed_data, year, outp
   dev.off()
 }
 
-density_plot_QRILC_23 <- plot_imputation_distribution(numeric_23, imputed_RF_23, "2023", "/Users/marcinebessire/Desktop/project/RF_Distribution_Comparison23.pdf")
-density_plot_QRILC_24 <- plot_imputation_distribution(numeric_24, imputed_RF_24, "2024", "/Users/marcinebessire/Desktop/project/RF_Distribution_Comparison24.pdf")
+density_plot_QRILC_23 <- plot_imputation_distribution(numeric_23, imputed_RF_23, "2023", "/Users/marcinebessire/Desktop/project/RF_Distribution_Comparison23_CV30.pdf")
+density_plot_QRILC_24 <- plot_imputation_distribution(numeric_24, imputed_RF_24, "2024", "/Users/marcinebessire/Desktop/project/RF_Distribution_Comparison24_CV30.pdf")
 
 
 # Part 5 ------
@@ -240,7 +240,7 @@ calculate_normalized_difference <- function(original_data, imputed_data, year, o
   p1 <- ggplot(mean_comparison, aes(x = Metabolite, y = Normalized_Difference, fill = Normalized_Difference)) +
     geom_bar(stat = "identity") +
     theme_minimal() +
-    labs(title = paste("Normalized Difference in Mean Before and After Imputation (", year, ")", sep = ""),
+    labs(title = paste("Normalized Difference in Mean Before and After Imputation with CV filtering (", year, ")", sep = ""),
          x = "Metabolite",
          y = "Normalized Difference") +
     theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
@@ -250,9 +250,9 @@ calculate_normalized_difference <- function(original_data, imputed_data, year, o
   
   #plot density of the normalized difference
   p2 <- ggplot(mean_comparison, aes(x = Normalized_Difference)) +
-    geom_density(fill = "blue", alpha = 0.4, color = "black") +  # Density plot
+    geom_density(fill = "blue", alpha = 0.4, color = "black") +  #density plot
     theme_minimal() +
-    labs(title = paste("Density Plot of Normalized Difference with RF Imputation (", year, ")", sep = ""),
+    labs(title = paste("Density Plot of Normalized Difference with RF Imputation and CV filtering (", year, ")", sep = ""),
          x = "Normalized Difference",
          y = "Density") +
     xlim(-0.4, 0.4) +
@@ -263,8 +263,8 @@ calculate_normalized_difference <- function(original_data, imputed_data, year, o
   dev.off()
 }
 
-normalized_difference23 <- calculate_normalized_difference(numeric_23, imputed_RF_23, "2023", "/Users/marcinebessire/Desktop/project/RF_normalized_difference23.pdf")
-normalized_difference24 <- calculate_normalized_difference(numeric_24, imputed_RF_24, "2024", "/Users/marcinebessire/Desktop/project/RF_normalized_difference24.pdf")
+normalized_difference23 <- calculate_normalized_difference(numeric_23, imputed_RF_23, "2023", "/Users/marcinebessire/Desktop/project/RF_normalized_difference23_CV30.pdf")
+normalized_difference24 <- calculate_normalized_difference(numeric_24, imputed_RF_24, "2024", "/Users/marcinebessire/Desktop/project/RF_normalized_difference24_CV30.pdf")
 
 
 # # Extra Part (Correlation) ----- 
