@@ -153,7 +153,7 @@ shapiro_df24 <- data.frame(Metabolite = names(shapiro_results24), p_value = shap
 non_normal_count23 <- sum(shapiro_df23$p_value < 0.05)
 non_normal_count23 #61 metabolites are non-normal distributed 
 non_normal_count24 <- sum(shapiro_df24$p_value < 0.05)
-non_normal_count24 #69 metabolites are non-normal distributed 
+non_normal_count24 #64 metabolites are non-normal distributed 
 
 
 # Part 4 -----
@@ -195,7 +195,7 @@ plot_imputation_distribution <- function(original_data, imputed_data, year, outp
   #generate the plot
   p <- ggplot(comparison, aes(x = Value, fill = Dataset)) +
     geom_density(alpha = 0.5) +  # Transparency for overlapping
-    labs(title = paste("Distribution of Original, Imputed, and Imputed_Only Values (", year, ")", sep = ""),
+    labs(title = paste("Distribution of Original Data, Imputed Data, and Imputed Values (", year, ")", sep = ""),
          x = "Metabolite Value",
          y = "Density") +
     theme_minimal() + 
@@ -252,7 +252,7 @@ calculate_normalized_difference <- function(original_data, imputed_data, year, o
   p2 <- ggplot(mean_comparison, aes(x = Normalized_Difference)) +
     geom_density(fill = "blue", alpha = 0.4, color = "black") +  # Density plot
     theme_minimal() +
-    labs(title = paste("Density Plot of Normalized Difference (", year, ")", sep = ""),
+    labs(title = paste("Density Plot of Normalized Difference with RF Imputation (", year, ")", sep = ""),
          x = "Normalized Difference",
          y = "Density") +
     xlim(-0.4, 0.4) +
