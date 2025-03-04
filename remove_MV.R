@@ -96,29 +96,22 @@ write_csv(common_metabolites_24, "/Users/marcinebessire/Desktop/project/Common_M
 data_columns23 <- common_metabolites_23[, 6:ncol(common_metabolites_23)]
 data_columns24 <- common_metabolites_24[, 6:ncol(common_metabolites_24)]
 
-#2023
-lshap23 <- lapply(data_columns23, shapiro.test)
-lshap23[[1]] ## look at the first column results
-str(lshap23[[1]]) #check which test was performed
-lres23 <- sapply(lshap23, `[`, c("statistic","p.value")) #p-value for all objects 
-print(lres23)
+# Part 3.2 -------
+# Check normality of data 
 
-#count how many metabolites have p-values >= 0.05 (normally distributed)
-num_normal23 <- sum(lres23["p.value", ] >= 0.05)
+#check normality using shapiro.test (becuase t-test assumes normality)
+shapiro_results23 <- apply(data_columns23, 2, function(x) shapiro.test(x)$p.value)
+shapiro_results24 <- apply(data_columns24, 2, function(x) shapiro.test(x)$p.value)
 
-# Print the count
-cat("Number of normally distributed metabolites:", num_normal23, "\n")#gives 25
 
-#2024
-lshap24 <- lapply(data_columns24, shapiro.test)
-lshap24[[1]] ## look at the first column results
-str(lshap24[[1]]) #check which test was performed
-lres24 <- sapply(lshap24, `[`, c("statistic","p.value")) #p-value for all objects 
-print(lres24)
+#convert to a dataframe for easy viewing
+shapiro_df23 <- data.frame(Metabolite = names(shapiro_results23), p_value = shapiro_results23) #total 84 metabolites
+shapiro_df24 <- data.frame(Metabolite = names(shapiro_results24), p_value = shapiro_results24)
 
-#count how many metabolites have p-values >= 0.05 (normally distributed)
-num_normal24 <- sum(lres24["p.value", ] >= 0.05)
+#if p-value < 0.05 then not normal distribution
+non_normal_count23 <- sum(shapiro_df23$p_value < 0.05)
+non_normal_count23 #59 metabolites are non-normal distributed 
+non_normal_count24 <- sum(shapiro_df24$p_value < 0.05)
+non_normal_count24 #56 metabolites are non-normal distributed 
 
-# Print the count
-cat("Number of normally distributed metabolites:", num_normal24, "\n") #gives 28
 

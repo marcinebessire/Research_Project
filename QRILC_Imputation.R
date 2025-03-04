@@ -28,6 +28,7 @@ tot24 <- nrow(numeric24) * ncol(numeric24) #6048
 #percentage of missing values 
 percentage_mv23 <- (mv23 / tot23) * 100 #1.419%
 percentage_mv24 <- (mv24 / tot24) * 100 #8.697%
+
 #needs transformation to matrix 
 numeric23 <- as.matrix(numeric23)
 numeric24 <- as.matrix(numeric24)
