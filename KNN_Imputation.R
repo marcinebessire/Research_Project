@@ -5,6 +5,7 @@ library(ggplot2)
 library(dplyr)
 library(tidyr)
 library(tidyverse)
+library(moments)  #for skewness and kurtosis
 
 # Part 1 -------
 # Perform KNN imputation of Missing values 
@@ -203,38 +204,39 @@ plot_imputation_distribution <- function(original_data, imputed_data, year, outp
 density_plot_KNN_23 <- plot_imputation_distribution(numeric23, imputed_KNN23, "2023", "/Users/marcinebessire/Desktop/project/KNN_Distribution_Comparison23.pdf")
 density_plot_KNN_24 <- plot_imputation_distribution(numeric24, imputed_KNN24, "2024", "/Users/marcinebessire/Desktop/project/KNN_Distribution_Comparison24.pdf")
 
-#QQ-plot to assess if distirbution are the smae 
-plot_qq_comparison <- function(original_data, imputed_data, year, output_file) {
-  #convert data to long format
-  imputed_long <- imputed_data %>%
-    pivot_longer(cols = everything(), names_to = "Metabolite", values_to = "Imputed_Data")
-  
-  original_long <- original_data %>%
-    pivot_longer(cols = everything(), names_to = "Metabolite", values_to = "Original_Data")
-  
-  #merge original and imputed datasets
-  comparison <- original_long %>%
-    left_join(imputed_long, by = "Metabolite")
-  
-  #save plot
-  pdf(output_file, width = 8, height = 6)
-  
-  #generate the QQ plot
-  p <- ggplot(comparison, aes(sample = Imputed_Data)) +
-    stat_qq(aes(sample = Original_Data)) + 
-    stat_qq_line(aes(sample = Original_Data), color = "red") +
-    labs(title = paste("QQ Plot: Original vs Imputed Data (", year, ")", sep = ""),
-         x = "Original Data Quantiles",
-         y = "Imputed Data Quantiles") +
-    theme_minimal()
-  
-  print(p)
-  dev.off()
-}
+# #QQ-plot to assess if distribution are the smae 
+# plot_qq_comparison <- function(original_data, imputed_data, year, output_file) {
+#   #convert data to long format
+#   imputed_long <- imputed_data %>%
+#     pivot_longer(cols = everything(), names_to = "Metabolite", values_to = "Imputed_Data")
+#   
+#   original_long <- original_data %>%
+#     pivot_longer(cols = everything(), names_to = "Metabolite", values_to = "Original_Data")
+#   
+#   #merge original and imputed datasets
+#   comparison <- original_long %>%
+#     left_join(imputed_long, by = "Metabolite")
+#   
+#   #save plot
+#   pdf(output_file, width = 8, height = 6)
+#   
+#   #generate the QQ plot
+#   p <- ggplot(comparison, aes(sample = Imputed_Data)) +
+#     stat_qq(aes(sample = Original_Data)) + 
+#     stat_qq_line(aes(sample = Original_Data), color = "red") +
+#     labs(title = paste("QQ Plot: Original vs Imputed Data (", year, ")", sep = ""),
+#          x = "Original Data Quantiles",
+#          y = "Imputed Data Quantiles") +
+#     theme_minimal()
+#   
+#   print(p)
+#   dev.off()
+# }
+# 
+# # Generate QQ plots for 2023 and 2024
+# qq_plot_23 <- plot_qq_comparison(numeric23, imputed_KNN23, "2023", "/Users/marcinebessire/Desktop/project/KNN_QQ_Plot_Comparison23.pdf")
+# qq_plot_24 <- plot_qq_comparison(numeric24, imputed_KNN24, "2024", "/Users/marcinebessire/Desktop/project/KNN_QQ_Plot_Comparison24.pdf")
 
-# Generate QQ plots for 2023 and 2024
-qq_plot_23 <- plot_qq_comparison(numeric23, imputed_KNN23, "2023", "/Users/marcinebessire/Desktop/project/KNN_QQ_Plot_Comparison23.pdf")
-qq_plot_24 <- plot_qq_comparison(numeric24, imputed_KNN24, "2024", "/Users/marcinebessire/Desktop/project/KNN_QQ_Plot_Comparison24.pdf")
 
 # Part 5 ------
 # calculate normalized difference of each imputation (before and after) and plot
