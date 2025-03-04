@@ -17,6 +17,17 @@ data24 <- read.csv("/Users/marcinebessire/Desktop/project/Common_Metabolites24.c
 numeric23 <- data23[, 6:ncol(data23)]
 numeric24 <- data24[, 6:ncol(data24)]
 
+#count missing values 
+mv23 <- sum(is.na(numeric23)) #99 MV
+mv24 <- sum(is.na(numeric24)) #526 MV
+
+#total values 
+tot23 <- nrow(numeric23) * ncol(numeric24) #6972
+tot24 <- nrow(numeric24) * ncol(numeric24) #6048
+
+#percentage of missing values 
+percentage_mv23 <- (mv23 / tot23) * 100 #1.419%
+percentage_mv24 <- (mv24 / tot24) * 100 #8.697%
 #needs transformation to matrix 
 numeric23 <- as.matrix(numeric23)
 numeric24 <- as.matrix(numeric24)
@@ -202,9 +213,9 @@ shapiro_df24 <- data.frame(Metabolite = names(shapiro_results24), p_value = shap
 
 #if p-value < 0.05 then not normal distribution
 non_normal_count23 <- sum(shapiro_df23$p_value < 0.05)
-non_normal_count23 #59 metabolites are non-normal distributed 
+non_normal_count23 #61 metabolites are non-normal distributed 
 non_normal_count24 <- sum(shapiro_df24$p_value < 0.05)
-non_normal_count24 #46 metabolites are non-normal distributed 
+non_normal_count24 #48 metabolites are non-normal distributed 
 
 
 # Part 4 -----
@@ -250,7 +261,7 @@ plot_imputation_distribution <- function(original_data, imputed_data, year, outp
   #generate the plot
   p <- ggplot(comparison, aes(x = Value, fill = Dataset)) +
     geom_density(alpha = 0.5) +  # Transparency for overlapping
-    labs(title = paste("Distribution of Original, Imputed, and Imputed_Only Values (", year, ")", sep = ""),
+    labs(title = paste("Distribution of Original Data, Imputed Data, and Imputed Values (", year, ")", sep = ""),
          x = "Metabolite Value",
          y = "Density") +
     theme_minimal() + 
@@ -306,7 +317,7 @@ calculate_normalized_difference <- function(original_data, imputed_data, year, o
   p2 <- ggplot(mean_comparison, aes(x = Normalized_Difference)) +
     geom_density(fill = "blue", alpha = 0.4, color = "black") +  # Density plot
     theme_minimal() +
-    labs(title = paste("Density Plot of Normalized Difference (", year, ")", sep = ""),
+    labs(title = paste("Density Plot of Normalized Difference with QRILC Imputation (", year, ")", sep = ""),
          x = "Normalized Difference",
          y = "Density") +
     xlim(-0.4, 0.4) +
