@@ -427,6 +427,11 @@ mean_before23 <- original_23_metabolites %>%
   summarise(across(everything(), mean, na.rm = TRUE)) %>%
   pivot_longer(cols = everything(), names_to = "Metabolite", values_to = "Mean_Before")
 
+sd_before23 <- original_23_metabolites %>%
+  summarise(across(everything(), sd, na.rm = TRUE)) %>%
+  pivot_longer(cols = everything(), names_to = "Metabolite", values_to = "SD_Before")
+
+
 #means after imputation
 mean_after23 <- half_min_23_metabolites %>%
   summarise(across(everything(), mean, na.rm = TRUE)) %>%
