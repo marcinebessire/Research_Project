@@ -114,7 +114,7 @@ test_results <- data.frame(
             significant_ttest, total_metabolites - significant_ttest)
 )
 
-pdf("/Users/marcinebessire/Desktop/project/KNN_Significance_CV30.pdf", width = 10, height = 6)
+pdf("/Users/marcinebessire/Desktop/project/KNN_Significance.pdf", width = 10, height = 6)
 
 #plot grouped bar chart
 ggplot(test_results, aes(x = Test, y = Count, fill = Category)) +
@@ -151,43 +151,74 @@ non_normal_count24 #84 metabolites are non-normal distributed and 60 with CV
 # Part 4 -----
 # Distirbution plot before and after Imputation and Imputed Values Only 
 
-plot_imputation_distribution <- function(original_data, imputed_data, year, output_file) {
+plot_imputation_distribution <- function(original_data23, original_data24, imputed_data23, imputed_data24) {
   #convert data to long format
-  imputed_long <- imputed_data %>%
+  imputed_long23 <- imputed_data23 %>%
     pivot_longer(cols = everything(), names_to = "Metabolite", values_to = "Imputed_Data")
   
-  original_long <- original_data %>%
+  original_long23 <- original_data23 %>%
     pivot_longer(cols = everything(), names_to = "Metabolite", values_to = "Original_Data")
   
   #identify imputed values
-  imputed_only <- original_long %>%
+  imputed_only23 <- original_long23 %>%
     mutate(Imputed = is.na(Original_Data)) %>%
     filter(Imputed) %>%
-    select(Metabolite) %>%
-    inner_join(imputed_long, by = "Metabolite") %>%
+    inner_join(imputed_long23 %>%
+                 distinct(Metabolite, .keep_all = TRUE), by = "Metabolite") %>%
     mutate(Dataset = "Imputed_Values")
   
   #merge original and imputed datasets
-  comparison <- original_long %>%
-    left_join(imputed_long, by = "Metabolite") %>%
+  comparison23 <- original_long23 %>%
+    left_join(imputed_long23 %>%
+                distinct(Metabolite, .keep_all = TRUE), by = "Metabolite") %>%
     pivot_longer(cols = c("Original_Data", "Imputed_Data"), 
                  names_to = "Dataset", values_to = "Value")
   
   #add Imputed_Only as a separate dataset
-  imputed_only <- imputed_only %>%
+  imputed_only23 <- imputed_only23 %>%
     mutate(Value = Imputed_Data, Dataset = "Imputed_Values") %>%
     select(Metabolite, Dataset, Value)
   
   #combine both datasets
-  comparison <- bind_rows(comparison, imputed_only)
+  comparison23 <- bind_rows(comparison23, imputed_only23)
+  
+  #convert data to long format
+  imputed_long24 <- imputed_data24 %>%
+    pivot_longer(cols = everything(), names_to = "Metabolite", values_to = "Imputed_Data")
+  
+  original_long24 <- original_data24 %>%
+    pivot_longer(cols = everything(), names_to = "Metabolite", values_to = "Original_Data")
+  
+  #identify imputed values
+  imputed_only24 <- original_long24 %>%
+    mutate(Imputed = is.na(Original_Data)) %>%
+    filter(Imputed) %>%
+    inner_join(imputed_long24 %>%
+                 distinct(Metabolite, .keep_all = TRUE), by = "Metabolite") %>%
+    mutate(Dataset = "Imputed_Values")
+  
+  #merge original and imputed datasets
+  comparison24 <- original_long24 %>%
+    left_join(imputed_long24 %>%
+                distinct(Metabolite, .keep_all = TRUE), by = "Metabolite") %>%
+    pivot_longer(cols = c("Original_Data", "Imputed_Data"), 
+                 names_to = "Dataset", values_to = "Value")
+  
+  #add Imputed_Only as a separate dataset
+  imputed_only24 <- imputed_only24 %>%
+    mutate(Value = Imputed_Data, Dataset = "Imputed_Values") %>%
+    select(Metabolite, Dataset, Value)
+  
+  #combine both datasets
+  comparison24 <- bind_rows(comparison24, imputed_only24)
   
   # Open a PDF device to save the plot
-  pdf(output_file, width = 8, height = 6)
+  pdf("/Users/marcinebessire/Desktop/project/KNN_Distribution_Comparison.pdf", width = 8, height = 6)
   
-  #generate the plot
-  p <- ggplot(comparison, aes(x = Value, fill = Dataset)) +
-    geom_density(alpha = 0.5) +  # Transparency for overlapping
-    labs(title = paste("Distribution of Original Data, Imputed Data, and Imputed Values with CV filtering (", year, ")", sep = ""),
+  #generate the plot23
+  p23 <- ggplot(comparison23, aes(x = Value, fill = Dataset)) +
+    geom_density(alpha = 0.5) +  #transparent for overlap
+    labs(title = "Distribution of Original/Imputed Data and Imputed Values with with KNN Imputation (2023)",
          x = "Metabolite Value",
          y = "Density") +
     theme_minimal() + 
@@ -196,179 +227,264 @@ plot_imputation_distribution <- function(original_data, imputed_data, year, outp
                                  "Imputed_Values" = "green")) +
     xlim(-10, 50)
   
-  print(p)
+  print(p23)
+  
+  #generate the plot23
+  p24 <- ggplot(comparison24, aes(x = Value, fill = Dataset)) +
+    geom_density(alpha = 0.5) +  #transparent for overlap
+    labs(title = "Distribution of Original/Imputed Data and Imputed Values with with KNN Imputation (2024)",
+         x = "Metabolite Value",
+         y = "Density") +
+    theme_minimal() + 
+    scale_fill_manual(values = c("Original_Data" = "lightblue", 
+                                 "Imputed_Data" = "red", 
+                                 "Imputed_Values" = "green")) +
+    xlim(-10, 50)
+  
+  print(p24)
+  
   dev.off()
 }
 
-density_plot_KNN_23 <- plot_imputation_distribution(numeric23, imputed_KNN23, "2023", "/Users/marcinebessire/Desktop/project/KNN_Distribution_Comparison23_CV30.pdf")
-density_plot_KNN_24 <- plot_imputation_distribution(numeric24, imputed_KNN24, "2024", "/Users/marcinebessire/Desktop/project/KNN_Distribution_Comparison24_CV30.pdf")
+density_plot_KNN <- plot_imputation_distribution(numeric23, numeric24, imputed_KNN23, imputed_KNN24)
 
-# #QQ-plot to assess if distribution are the smae 
-# plot_qq_comparison <- function(original_data, imputed_data, year, output_file) {
-#   #convert data to long format
-#   imputed_long <- imputed_data %>%
-#     pivot_longer(cols = everything(), names_to = "Metabolite", values_to = "Imputed_Data")
-#   
-#   original_long <- original_data %>%
-#     pivot_longer(cols = everything(), names_to = "Metabolite", values_to = "Original_Data")
-#   
-#   #merge original and imputed datasets
-#   comparison <- original_long %>%
-#     left_join(imputed_long, by = "Metabolite")
-#   
-#   #save plot
-#   pdf(output_file, width = 8, height = 6)
-#   
-#   #generate the QQ plot
-#   p <- ggplot(comparison, aes(sample = Imputed_Data)) +
-#     stat_qq(aes(sample = Original_Data)) + 
-#     stat_qq_line(aes(sample = Original_Data), color = "red") +
-#     labs(title = paste("QQ Plot: Original vs Imputed Data (", year, ")", sep = ""),
-#          x = "Original Data Quantiles",
-#          y = "Imputed Data Quantiles") +
-#     theme_minimal()
-#   
-#   print(p)
-#   dev.off()
-# }
-# 
-# # Generate QQ plots for 2023 and 2024
-# qq_plot_23 <- plot_qq_comparison(numeric23, imputed_KNN23, "2023", "/Users/marcinebessire/Desktop/project/KNN_QQ_Plot_Comparison23.pdf")
-# qq_plot_24 <- plot_qq_comparison(numeric24, imputed_KNN24, "2024", "/Users/marcinebessire/Desktop/project/KNN_QQ_Plot_Comparison24.pdf")
+# Part 4.2 -----
+# QQ plot comparing distribution
+
+#2023
+#convert data to long format for visualization
+imputed_23_long <- imputed_KNN23 %>%
+  pivot_longer(cols = everything(), names_to = "Metabolite", values_to = "Imputed_Data")
+
+original_23_long <- numeric23 %>%
+  pivot_longer(cols = everything(), names_to = "Metabolite", values_to = "Original_Data")
+
+#identify imputed values => missing values were replaced by half of the minimum observed value.
+imputed_only_23 <- original_23_long %>%
+  mutate(Imputed = is.na(Original_Data)) %>%
+  filter(Imputed) %>%
+  inner_join(imputed_23_long %>%
+               distinct(Metabolite, .keep_all = TRUE), by = "Metabolite") %>%
+  mutate(Dataset = "Imputed_Values")
+
+
+#merge original and imputed datasets
+comparison_23 <- original_23_long %>%
+  left_join(imputed_23_long %>%
+              distinct(Metabolite, .keep_all = TRUE), by = "Metabolite") %>%
+  pivot_longer(cols = c("Original_Data", "Imputed_Data"), 
+               names_to = "Dataset", values_to = "Value")
+
+#add Imputed_Only as a separate dataset
+imputed_only_23 <- imputed_only_23 %>%
+  mutate(Value = Imputed_Data, Dataset = "Imputed_Values") %>%
+  select(Metabolite, Dataset, Value)
+
+#combine both datasets
+comparison_23 <- bind_rows(comparison_23, imputed_only_23)
+
+#2024
+#convert data to long format for visualization
+imputed_24_long <- imputed_KNN24 %>%
+  pivot_longer(cols = everything(), names_to = "Metabolite", values_to = "Imputed_Data")
+
+original_24_long <- numeric24 %>%
+  pivot_longer(cols = everything(), names_to = "Metabolite", values_to = "Original_Data")
+
+#identify imputed values => missing values were replaced by half of the minimum observed value.
+imputed_only_24 <- original_24_long %>%
+  mutate(Imputed = is.na(Original_Data)) %>%
+  filter(Imputed) %>%
+  inner_join(imputed_24_long %>%
+               distinct(Metabolite, .keep_all = TRUE), by = "Metabolite") %>%
+  mutate(Dataset = "Imputed_Values")
+
+#merge original and imputed datasets
+comparison_24 <- original_24_long %>%
+  left_join(imputed_24_long %>%
+              distinct(Metabolite, .keep_all = TRUE), by = "Metabolite") %>%
+  pivot_longer(cols = c("Original_Data", "Imputed_Data"), 
+               names_to = "Dataset", values_to = "Value")
+
+#add Imputed_Only as a separate dataset
+imputed_only_24 <- imputed_only_24 %>%
+  mutate(Value = Imputed_Data, Dataset = "Imputed_Values") %>%
+  select(Metabolite, Dataset, Value)
+
+#combine both datasets
+comparison_24 <- bind_rows(comparison_24, imputed_only_24)
+
+
+pdf("/Users/marcinebessire/Desktop/project/KNN_QQ_Plots.pdf", width = 8, height = 6)
+
+#QQ Plot Function
+qq_plot <- function(data_x, data_y, x_label, y_label, title) {
+  df <- data.frame(x = quantile(data_x, probs = seq(0, 1, 0.01), na.rm = TRUE),
+                   y = quantile(data_y, probs = seq(0, 1, 0.01), na.rm = TRUE))
+  
+  ggplot(df, aes(x = x, y = y)) +
+    geom_point() +
+    geom_abline(slope = 1, intercept = 0, color = "red", linetype = "dashed") +
+    labs(title = title, x = x_label, y = y_label) +
+    theme_minimal()
+}
+
+#QQ Plot: Imputed Data 2023 vs. Original Data 2023
+print(qq_plot(comparison_23$Value[comparison_23$Dataset == "Imputed_Data"], 
+              comparison_23$Value[comparison_23$Dataset == "Original_Data"], 
+              "Original Data (2023)", "Imputed Data (2023)", 
+              "QQ Plot: Imputed Data vs. Original Data (2023)"))
+
+#QQ Plot: Imputed Data 2024 vs. Original Data 2024
+print(qq_plot(comparison_24$Value[comparison_24$Dataset == "Imputed_Data"], 
+              comparison_24$Value[comparison_24$Dataset == "Original_Data"], 
+              "Original Data (2024)", "Imputed Data (2024)", 
+              "QQ Plot: Imputed Data vs. Original Data (2024)"))
+
+#QQ Plot: Imputed Data 2024 vs. Imputed Data 2023
+print(qq_plot(comparison_24$Value[comparison_24$Dataset == "Imputed_Data"], 
+              comparison_23$Value[comparison_23$Dataset == "Imputed_Data"], 
+              "Imputed Data (2023)", "Imputed Data (2024)", 
+              "QQ Plot: Imputed Data 2024 vs. Imputed Data 2023"))
+
+#QQ Plot: Original Data 2024 vs. Original Data 2023
+print(qq_plot(comparison_24$Value[comparison_24$Dataset == "Original_Data"], 
+              comparison_23$Value[comparison_23$Dataset == "Original_Data"], 
+              "Original Data (2023)", "Original Data (2024)", 
+              "QQ Plot: Original Data 2024 vs. Original Data 2023"))
+
+dev.off()
+
+#remove outliers using IQR methode (interquartile range to filter out extreme values)
+remove_outliers <- function(data) {
+  Q1 <- quantile(data, 0.25, na.rm = TRUE)
+  Q3 <- quantile(data, 0.75, na.rm = TRUE)
+  IQR_value <- Q3 - Q1
+  lower_bound <- Q1 - 1.5 * IQR_value
+  upper_bound <- Q3 + 1.5 * IQR_value
+  return(data[data >= lower_bound & data <= upper_bound])
+}
+
+#remove the outliers from the data
+imputed_23_clean <- remove_outliers(comparison_23$Value[comparison_23$Dataset == "Imputed_Data"])
+original_23_clean <- remove_outliers(comparison_23$Value[comparison_23$Dataset == "Original_Data"])
+
+imputed_24_clean <- remove_outliers(comparison_24$Value[comparison_24$Dataset == "Imputed_Data"])
+original_24_clean <- remove_outliers(comparison_24$Value[comparison_24$Dataset == "Original_Data"])
+
+#pdf to save the QQ plots
+pdf("/Users/marcinebessire/Desktop/project/KNN_QQ_Plots_NoOutliers.pdf", width = 8, height = 6)
+
+#QQ Plot: Imputed Data 2023 vs. Original Data 2023
+print(qq_plot(original_23_clean, imputed_23_clean, 
+              "Original Data (2023)", "Imputed Data (2023)", 
+              "QQ Plot: Imputed Data vs. Original Data (2023)"))
+
+# QQ Plot: Imputed Data 2024 vs. Original Data 2024
+print(qq_plot(original_24_clean, imputed_24_clean, 
+              "Original Data (2024)", "Imputed Data (2024)", 
+              "QQ Plot: Imputed Data vs. Original Data (2024)"))
+
+# QQ Plot: Imputed Data 2024 vs. Imputed Data 2023
+print(qq_plot(imputed_23_clean, imputed_24_clean, 
+              "Imputed Data (2023)", "Imputed Data (2024)", 
+              "QQ Plot: Imputed Data 2024 vs. Imputed Data 2023"))
+
+# QQ Plot: Original Data 2024 vs. Original Data 2023
+print(qq_plot(original_23_clean, original_24_clean, 
+              "Original Data (2023)", "Original Data (2024)", 
+              "QQ Plot: Original Data 2024 vs. Original Data 2023"))
+
+dev.off()
 
 
 # Part 5 ------
 # calculate normalized difference of each imputation (before and after) and plot
 
-calculate_normalized_difference <- function(original_data, imputed_data, year, output_file) {
-  #mean before imputation
-  mean_before <- original_data %>%
+calculate_normalized_difference <- function(original_data23, original_data24, imputed_data23, imputed_data24) {
+  #mean before imputation (2023)
+  mean_before23 <- original_data23 %>%
     summarise(across(everything(), mean, na.rm = TRUE)) %>%
     pivot_longer(cols = everything(), names_to = "Metabolite", values_to = "Mean_Before")
   
-  #mean after imputation
-  mean_after <- imputed_data %>%
+  #mean after imputation (2023)
+  mean_after23 <- imputed_data23 %>%
     summarise(across(everything(), mean, na.rm = TRUE)) %>%
     pivot_longer(cols = everything(), names_to = "Metabolite", values_to = "Mean_After")
   
-  #merge before and after mean values
-  mean_comparison <- left_join(mean_before, mean_after, by = "Metabolite")
-  
-  #normalized difference
-  mean_comparison <- mean_comparison %>%
+  #merge before and after means (2023)
+  mean_comparison23 <- left_join(mean_before23, mean_after23, by = "Metabolite") %>%
     mutate(Normalized_Difference = (Mean_After - Mean_Before) / Mean_Before)
   
-  # save the plot
-  pdf(output_file, width = 10, height = 6)
+  #mean before imputation (2024)
+  mean_before24 <- original_data24 %>%
+    summarise(across(everything(), mean, na.rm = TRUE)) %>%
+    pivot_longer(cols = everything(), names_to = "Metabolite", values_to = "Mean_Before")
   
-  #plot normalized difference
-  p1 <- ggplot(mean_comparison, aes(x = Metabolite, y = Normalized_Difference, fill = Normalized_Difference)) +
+  #mean after imputation (2024)
+  mean_after24 <- imputed_data24 %>%
+    summarise(across(everything(), mean, na.rm = TRUE)) %>%
+    pivot_longer(cols = everything(), names_to = "Metabolite", values_to = "Mean_After")
+  
+  #merge before and after means (2024)
+  mean_comparison24 <- left_join(mean_before24, mean_after24, by = "Metabolite") %>%
+    mutate(Normalized_Difference = (Mean_After - Mean_Before) / Mean_Before)
+  
+ 
+  pdf("/Users/marcinebessire/Desktop/project/KNN_normalized_difference.pdf", width = 10, height = 6)
+  
+  #plot for 2023
+  p23 <- ggplot(mean_comparison23, aes(x = Metabolite, y = Normalized_Difference, fill = Normalized_Difference)) +
     geom_bar(stat = "identity") +
     theme_minimal() +
-    labs(title = paste("Normalized Difference in Mean Before and After Imputation with CV filtering (", year, ")", sep = ""),
+    labs(title = "Normalized Difference in Mean Before and After Imputation with KNN Imputation (2023)",
          x = "Metabolite",
          y = "Normalized Difference") +
     theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
     scale_fill_gradient2(low = "blue", mid = "white", high = "red", midpoint = 0)
   
-  print(p1)
+  print(p23)
   
-  #plot density of the normalized difference
-  p2 <- ggplot(mean_comparison, aes(x = Normalized_Difference)) +
-    geom_density(fill = "blue", alpha = 0.4, color = "black") +  # Density plot
+  #density plot for 2023
+  p23_density <- ggplot(mean_comparison23, aes(x = Normalized_Difference)) +
+    geom_density(fill = "blue", alpha = 0.4, color = "black") +
     theme_minimal() +
-    labs(title = paste("Density Plot of Normalized Difference with KNN Imputation and CV filtering (", year, ")", sep = ""),
+    labs(title = "Density Plot of Normalized Difference with KNN Imputation (2023)",
          x = "Normalized Difference",
          y = "Density") +
     xlim(-0.4, 0.4) +
-    geom_vline(xintercept = 0, linetype = "dashed", color = "red")  # Reference line at 0
+    geom_vline(xintercept = 0, linetype = "dashed", color = "red")
   
-  print(p2)
+  print(p23_density)
   
+  #plot for 2024
+  p24 <- ggplot(mean_comparison24, aes(x = Metabolite, y = Normalized_Difference, fill = Normalized_Difference)) +
+    geom_bar(stat = "identity") +
+    theme_minimal() +
+    labs(title = "Normalized Difference in Mean Before and After Imputation with KNN Impputation(2024)",
+         x = "Metabolite",
+         y = "Normalized Difference") +
+    theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
+    scale_fill_gradient2(low = "blue", mid = "white", high = "red", midpoint = 0)
+  
+  print(p24)
+  
+  #density plot for 2024
+  p24_density <- ggplot(mean_comparison24, aes(x = Normalized_Difference)) +
+    geom_density(fill = "blue", alpha = 0.4, color = "black") +
+    theme_minimal() +
+    labs(title = "Density Plot of Normalized Difference with KNN Imputation (2024)",
+         x = "Normalized Difference",
+         y = "Density") +
+    xlim(-0.4, 0.4) +
+    geom_vline(xintercept = 0, linetype = "dashed", color = "red")
+  
+  print(p24_density)
+  
+  #close the PDF file
   dev.off()
 }
 
-normalized_difference23 <- calculate_normalized_difference(numeric23, imputed_KNN23, "2023", "/Users/marcinebessire/Desktop/project/KNN_normalized_difference23_CV30.pdf")
-normalized_difference24 <- calculate_normalized_difference(numeric24, imputed_KNN24, "2024", "/Users/marcinebessire/Desktop/project/KNN_normalized_difference24_CV30.pdf")
-
-
-
-# # Extra Part (Correlation)
-# # Assess quality of KNN imputation 
-# 
-# #first check if all values were imputed (no NA left)
-# sum(is.na(imputed_KNN23)) #is 0
-# sum(is.na(imputed_KNN24)) #is 0 
-# 
-# #compare data distribution before and after imputation 
-# par(mfrow = c(3,3)) #3x3 grid
-# par(mar = c(4,4,2,1))
-# 
-# #Boxplots of 9 metabolites (because 84 too big) for 2023
-# for (i in 1:9) {
-#   boxplot(imputed_KNN23[[i]], numeric23[[i]],
-#           names = c("KNN Imputation", "No Imputation"),
-#           main = paste("Metabolite", colnames(imputed_KNN23)[i]),
-#           col = c("lightblue", "lightgreen"))
-# }
-# 
-# #Boxplots of 9 metabolites (because 84 too big) for 2024
-# for (i in 1:9) {
-#   boxplot(imputed_KNN24[[i]], numeric24[[i]],
-#           names = c("KNN Imputation", "No Imputation"),
-#           main = paste("Metabolite", colnames(imputed_KNN23)[i]),
-#           col = c("lightblue", "lightgreen"))
-# }
-
-
-# #Correlation Check, compare correlation matrices
-# cor_before_23 <- cor(numeric23, use = "pairwise.complete.obs")
-# cor_after_23 <- cor(imputed_KNN23)
-# 
-# cor_before_24 <- cor(numeric24, use = "pairwise.complete.obs")
-# cor_after_24 <- cor(imputed_KNN24)
-# 
-# # Scatter plot 
-# #identify missing vlaues 
-# missing_val23 <- is.na(numeric23) #99
-# missing_val24 <- is.na(numeric24) #526
-# 
-# 
-# #create logical matrix identifying if a pair of metabolites had missing values
-# missing_pairs23 <- (missing_val23 %*% t(missing_val23)) > 0 #True 
-# missing_pairs24 <- (missing_val24 %*% t(missing_val24)) > 0
-# 
-# #extract upper triangular part of matrix 
-# #2023
-# imputed_indices23 <- missing_pairs23[upper.tri(missing_pairs23, diag = FALSE)]
-# cor_values_before23 <- cor_before_23[upper.tri(cor_before_23, diag = FALSE)]
-# cor_values_after23 <- cor_after_23[upper.tri(cor_after_23, diag = FALSE)]
-# #2024
-# imputed_indices24 <- missing_pairs24[upper.tri(missing_pairs24, diag = FALSE)]
-# cor_values_before24 <- cor_before_24[upper.tri(cor_before_24, diag = FALSE)]
-# cor_values_after24 <- cor_after_24[upper.tri(cor_after_24, diag = FALSE)]
-# 
-# pdf("/Users/marcinebessire/Desktop/project/KNN_Correlation_Comparison.pdf", width = 8, height = 6)
-# 
-# #2023
-# plot(cor_values_before23, cor_values_after23,
-#      xlab = "Before Imputation",
-#      ylab = "After Imputation",
-#      main = "Correlation Comparison",
-#      col = ifelse(imputed_indices23, "red", "blue"), #red for imputed pairs
-#      pch = 19) 
-# 
-# abline(0,1,col = "black", lwd = 2) #ideally points should line on line
-# 
-# #2024
-# plot(cor_values_before24, cor_values_after24,
-#      xlab = "Before Imputation",
-#      ylab = "After Imputation",
-#      main = "Correlation Comparison",
-#      col = ifelse(imputed_indices24, "red", "blue"), #red for imputed pairs
-#      pch = 19) 
-# 
-# abline(0,1,col = "black", lwd = 2) #ideally points should line on line
-# 
-# dev.off()
+# Call the function to generate all plots in one PDF
+calculate_normalized_difference(numeric23, numeric24, imputed_KNN23, imputed_KNN24)
 

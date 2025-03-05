@@ -11,12 +11,12 @@ library(dplyr)
 # Perform Half-min imputation
 
 #load data with CV threshold 30
-final_data_2023 <- read.csv("/Users/marcinebessire/Desktop/project/CV_Final_Data_2023.csv", check.names = FALSE)
-final_data_2024 <- read.csv("/Users/marcinebessire/Desktop/project/CV_Final_Data_2024.csv", check.names = FALSE)
+final_data_2023 <- read.csv("/Users/marcinebessire/Desktop/project/Final_Data_2023.csv", check.names = FALSE)
+final_data_2024 <- read.csv("/Users/marcinebessire/Desktop/project/Final_Data_2024.csv", check.names = FALSE)
 
 #load original common metabolites
-original_23 <- read.csv("/Users/marcinebessire/Desktop/project/CV_Common_Metabolites23.csv", check.names = FALSE)
-original_24 <- read.csv("/Users/marcinebessire/Desktop/project/CV_Common_Metabolites24.csv", check.names = FALSE)
+original_23 <- read.csv("/Users/marcinebessire/Desktop/project/Common_Metabolites23.csv", check.names = FALSE)
+original_24 <- read.csv("/Users/marcinebessire/Desktop/project/Common_Metabolites24.csv", check.names = FALSE)
 
 #keep only numeric columns
 original_23_metabolites <- original_23[, 6:ncol(original_23)]
@@ -175,7 +175,7 @@ test_results <- data.frame(
             significant_ttest, total_metabolites - significant_ttest)
 )
 
-pdf("/Users/marcinebessire/Desktop/project/Halfmin_Significance_CV30.pdf", width = 10, height = 6)
+pdf("/Users/marcinebessire/Desktop/project/Halfmin_Significance.pdf", width = 10, height = 6)
 
 #plot grouped bar chart
 ggplot(test_results, aes(x = Test, y = Count, fill = Category)) +
@@ -196,17 +196,22 @@ dev.off()
 #check normality using shapiro.test (becuase t-test assumes normality)
 shapiro_results23 <- apply(half_min_23_metabolites, 2, function(x) shapiro.test(x)$p.value)
 shapiro_results24 <- apply(half_min_24_metabolites, 2, function(x) shapiro.test(x)$p.value)
-
+#check before imputation
+shapiro_results_original23 <- apply(original_23_metabolites, 2, function(x) shapiro.test(x)$p.value)
 
 #convert to a dataframe for easy viewing
 shapiro_df23 <- data.frame(Metabolite = names(shapiro_results23), p_value = shapiro_results23) #total 84 metabolites
 shapiro_df24 <- data.frame(Metabolite = names(shapiro_results24), p_value = shapiro_results24)
+shapiro_df_original23 <- data.frame(Metabolite = names(shapiro_results_original23), p_value = shapiro_results_original23)
 
 #if p-value < 0.05 then not normal distribution
 non_normal_count23 <- sum(shapiro_df23$p_value < 0.05)
 non_normal_count23 #64 metabolites are non-normal distributed and with CV 47
 non_normal_count24 <- sum(shapiro_df24$p_value < 0.05)
 non_normal_count24 #84 metabolites are non-normal distributed and with CV 60
+non_normal_count_original23 <- sum(shapiro_df_original23$p_value < 0.05)
+non_normal_count_original23 #59 metabolites are non-normal distributed and with CV 60
+
 
 # Part 5 -------
 # Correlation Coefficient for each year (between CV (values before imputation) and Metabolite after Half min Imputation)
@@ -344,13 +349,15 @@ original_23_long <- original_23_metabolites %>%
 imputed_only_23 <- original_23_long %>%
   mutate(Imputed = is.na(Original_Data)) %>%
   filter(Imputed) %>%
-  select(Metabolite) %>%
-  inner_join(half_min_23_long, by = "Metabolite") %>%
+  inner_join(half_min_23_long %>%
+               distinct(Metabolite, .keep_all = TRUE), by = "Metabolite") %>%
   mutate(Dataset = "Imputed_Values")
+
 
 #merge original and imputed datasets
 comparison_23 <- original_23_long %>%
-  left_join(half_min_23_long, by = "Metabolite") %>%
+  left_join(half_min_23_long %>%
+              distinct(Metabolite, .keep_all = TRUE), by = "Metabolite") %>%
   pivot_longer(cols = c("Original_Data", "Imputed_Data"), 
                names_to = "Dataset", values_to = "Value")
 
@@ -374,13 +381,14 @@ original_24_long <- original_24_metabolites %>%
 imputed_only_24 <- original_24_long %>%
   mutate(Imputed = is.na(Original_Data)) %>%
   filter(Imputed) %>%
-  select(Metabolite) %>%
-  inner_join(half_min_24_long, by = "Metabolite") %>%
+  inner_join(half_min_24_long %>%
+               distinct(Metabolite, .keep_all = TRUE), by = "Metabolite") %>%
   mutate(Dataset = "Imputed_Values")
 
 #merge original and imputed datasets
 comparison_24 <- original_24_long %>%
-  left_join(half_min_24_long, by = "Metabolite") %>%
+  left_join(half_min_24_long %>%
+              distinct(Metabolite, .keep_all = TRUE), by = "Metabolite") %>%
   pivot_longer(cols = c("Original_Data", "Imputed_Data"), 
                names_to = "Dataset", values_to = "Value")
 
@@ -394,12 +402,12 @@ comparison_24 <- bind_rows(comparison_24, imputed_only_24)
 
 #Now plot 
 #open a PDF device to save multiple plots
-pdf("/Users/marcinebessire/Desktop/project/Halfmin_Distribution_Comparison_CV30.pdf", width = 8, height = 6)
+pdf("/Users/marcinebessire/Desktop/project/Halfmin_Distribution_Comparison.pdf", width = 8, height = 6)
 
 #2023 plot 
 ggplot(comparison_23, aes(x = Value, fill = Dataset)) +
   geom_density(alpha = 0.5) +  # Transparency for overlapping
-  labs(title = "Distribution of Original Data, Imputed Data, and Imputed Values with CV cut-off 30% (2023)",
+  labs(title = "Distribution of Original/Imputed Data and Imputed Values with Half-min Imputation (2023)",
        x = "Metabolite Value",
        y = "Density") +
   theme_minimal() + 
@@ -412,7 +420,7 @@ ggplot(comparison_23, aes(x = Value, fill = Dataset)) +
 #plot density distributions for original and imputed data separately
 ggplot(comparison_24, aes(x = Value, fill = Dataset)) +
   geom_density(alpha = 0.5) +  # Transparency for overlapping
-  labs(title = "Distribution of Original Data, Imputed Data, and Imputed Values with CV cut-off 30% (2024)",
+  labs(title = "Distribution of Original/Imputed Data, and Imputed Values with Half-min Imputation (2024)",
        x = "Metabolite Value",
        y = "Density") +
   theme_minimal() + 
@@ -423,6 +431,90 @@ ggplot(comparison_24, aes(x = Value, fill = Dataset)) +
   
 dev.off()
 
+# Part 7.2 -----
+# QQ plot comparing distribution
+
+pdf("/Users/marcinebessire/Desktop/project/Halfmin_QQ_Plots.pdf", width = 8, height = 6)
+
+#QQ Plot Function
+qq_plot <- function(data_x, data_y, x_label, y_label, title) {
+  df <- data.frame(x = quantile(data_x, probs = seq(0, 1, 0.01), na.rm = TRUE),
+                   y = quantile(data_y, probs = seq(0, 1, 0.01), na.rm = TRUE))
+  
+  ggplot(df, aes(x = x, y = y)) +
+    geom_point() +
+    geom_abline(slope = 1, intercept = 0, color = "red", linetype = "dashed") +
+    labs(title = title, x = x_label, y = y_label) +
+    theme_minimal()
+}
+
+#QQ Plot: Imputed Data 2023 vs. Original Data 2023
+print(qq_plot(comparison_23$Value[comparison_23$Dataset == "Imputed_Data"], 
+              comparison_23$Value[comparison_23$Dataset == "Original_Data"], 
+              "Original Data (2023)", "Imputed Data (2023)", 
+              "QQ Plot: Imputed Data vs. Original Data (2023)"))
+
+#QQ Plot: Imputed Data 2024 vs. Original Data 2024
+print(qq_plot(comparison_24$Value[comparison_24$Dataset == "Imputed_Data"], 
+              comparison_24$Value[comparison_24$Dataset == "Original_Data"], 
+              "Original Data (2024)", "Imputed Data (2024)", 
+              "QQ Plot: Imputed Data vs. Original Data (2024)"))
+
+#QQ Plot: Imputed Data 2024 vs. Imputed Data 2023
+print(qq_plot(comparison_24$Value[comparison_24$Dataset == "Imputed_Data"], 
+              comparison_23$Value[comparison_23$Dataset == "Imputed_Data"], 
+              "Imputed Data (2023)", "Imputed Data (2024)", 
+              "QQ Plot: Imputed Data 2024 vs. Imputed Data 2023"))
+
+#QQ Plot: Original Data 2024 vs. Original Data 2023
+print(qq_plot(comparison_24$Value[comparison_24$Dataset == "Original_Data"], 
+              comparison_23$Value[comparison_23$Dataset == "Original_Data"], 
+              "Original Data (2023)", "Original Data (2024)", 
+              "QQ Plot: Original Data 2024 vs. Original Data 2023"))
+
+dev.off()
+
+#remove outliers using IQR methode (interquartile range to filter out extreme values)
+remove_outliers <- function(data) {
+  Q1 <- quantile(data, 0.25, na.rm = TRUE)
+  Q3 <- quantile(data, 0.75, na.rm = TRUE)
+  IQR_value <- Q3 - Q1
+  lower_bound <- Q1 - 1.5 * IQR_value
+  upper_bound <- Q3 + 1.5 * IQR_value
+  return(data[data >= lower_bound & data <= upper_bound])
+}
+
+#remove the outliers from the data
+imputed_23_clean <- remove_outliers(comparison_23$Value[comparison_23$Dataset == "Imputed_Data"])
+original_23_clean <- remove_outliers(comparison_23$Value[comparison_23$Dataset == "Original_Data"])
+
+imputed_24_clean <- remove_outliers(comparison_24$Value[comparison_24$Dataset == "Imputed_Data"])
+original_24_clean <- remove_outliers(comparison_24$Value[comparison_24$Dataset == "Original_Data"])
+
+#pdf to save the QQ plots
+pdf("/Users/marcinebessire/Desktop/project/Halfmin_QQ_Plots_NoOutliers.pdf", width = 8, height = 6)
+
+#QQ Plot: Imputed Data 2023 vs. Original Data 2023
+print(qq_plot(original_23_clean, imputed_23_clean, 
+              "Original Data (2023)", "Imputed Data (2023)", 
+              "QQ Plot: Imputed Data vs. Original Data (2023)"))
+
+# QQ Plot: Imputed Data 2024 vs. Original Data 2024
+print(qq_plot(original_24_clean, imputed_24_clean, 
+              "Original Data (2024)", "Imputed Data (2024)", 
+              "QQ Plot: Imputed Data vs. Original Data (2024)"))
+
+# QQ Plot: Imputed Data 2024 vs. Imputed Data 2023
+print(qq_plot(imputed_23_clean, imputed_24_clean, 
+              "Imputed Data (2023)", "Imputed Data (2024)", 
+              "QQ Plot: Imputed Data 2024 vs. Imputed Data 2023"))
+
+# QQ Plot: Original Data 2024 vs. Original Data 2023
+print(qq_plot(original_23_clean, original_24_clean, 
+              "Original Data (2023)", "Original Data (2024)", 
+              "QQ Plot: Original Data 2024 vs. Original Data 2023"))
+
+dev.off()
 
 # Part 8 ------
 # calculate normalized difference of each imputation (before and after) and plot
@@ -466,13 +558,13 @@ mean_comparison24 <- left_join(mean_before24, mean_after24, by = "Metabolite")
 mean_comparison24 <- mean_comparison24 %>%
   mutate(Normalized_Difference = (Mean_After - Mean_Before) / Mean_Before)
 
-pdf("/Users/marcinebessire/Desktop/project/Halfmin_Normalized_Difference_Comparison_CV30.pdf", width = 10, height = 6)
+pdf("/Users/marcinebessire/Desktop/project/Halfmin_Normalized_Difference_Comparison.pdf", width = 10, height = 6)
 
 #plot normalized difference
 ggplot(mean_comparison23, aes(x = Metabolite, y = Normalized_Difference, fill = Normalized_Difference)) +
   geom_bar(stat = "identity") +
   theme_minimal() +
-  labs(title = "Normalized Difference in Mean Before and After Half-min Imputation with CV filtering (2023)",
+  labs(title = "Normalized Difference in Mean Before and After Half-min Imputation (2023)",
        x = "Metabolite",
        y = "Normalized Difference") +
   theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
@@ -483,7 +575,7 @@ ggplot(mean_comparison23, aes(x = Metabolite, y = Normalized_Difference, fill = 
 ggplot(mean_comparison24, aes(x = Metabolite, y = Normalized_Difference, fill = Normalized_Difference)) +
   geom_bar(stat = "identity") +
   theme_minimal() +
-  labs(title = "Normalized Difference in Mean Before and After Half-min Imputation CV filtering  (2024)",
+  labs(title = "Normalized Difference in Mean Before and After Half-min Imputation (2024)",
        x = "Metabolite",
        y = "Normalized Difference") +
   theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
@@ -493,7 +585,7 @@ ggplot(mean_comparison24, aes(x = Metabolite, y = Normalized_Difference, fill = 
 ggplot(mean_comparison23, aes(x = Normalized_Difference)) +
   geom_density(fill = "blue", alpha = 0.4, color = "black") +  #density plot
   theme_minimal() +
-  labs(title = "Density Plot of Normalized Difference with Half-min Imputation and CV filtering (2023)",
+  labs(title = "Density Plot of Normalized Difference with Half-min Imputation (2023)",
        x = "Normalized Difference",
        y = "Density") +
   xlim(-0.2,0.2) +
@@ -503,7 +595,7 @@ ggplot(mean_comparison23, aes(x = Normalized_Difference)) +
 ggplot(mean_comparison24, aes(x = Normalized_Difference)) +
   geom_density(fill = "blue", alpha = 0.4, color = "black") +  #density plot
   theme_minimal() +
-  labs(title = "Density Plot of Normalized Difference with Half-min Imputation and CV filtering (2024)",
+  labs(title = "Density Plot of Normalized Difference with Half-min Imputation (2024)",
        x = "Normalized Difference",
        y = "Density") +
   xlim(-0.4,0.4) +
@@ -511,6 +603,19 @@ ggplot(mean_comparison24, aes(x = Normalized_Difference)) +
 
 dev.off()
 
+# FINALLY: Check row count again 
+#2023: should have 99 MV and 6972 total values
+dataset_counts <- comparison_23 %>%
+  group_by(Dataset) %>%
+  summarise(Count = n())
+
+print(dataset_counts)
+#2024: should have 526 MV and 6048 total values
+dataset_counts <- comparison_24 %>%
+  group_by(Dataset) %>%
+  summarise(Count = n())
+
+print(dataset_counts)
 
 
 
