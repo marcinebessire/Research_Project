@@ -157,107 +157,7 @@ non_normal_count24 #63 metabolites are non-normal distributed
 
 
 # Part 4 -----
-# Distirbution plot before and after Imputation and Imputed Values Only 
-
-plot_imputation_distribution <- function(original_data23, original_data24, imputed_data23, imputed_data24) {
-  #convert data to long format
-  imputed_long23 <- imputed_data23 %>%
-    pivot_longer(cols = everything(), names_to = "Metabolite", values_to = "Imputed_Data")
-  
-  original_long23 <- original_data23 %>%
-    pivot_longer(cols = everything(), names_to = "Metabolite", values_to = "Original_Data")
-  
-  #identify imputed values
-  imputed_only23 <- original_long23 %>%
-    mutate(Imputed = is.na(Original_Data)) %>%
-    filter(Imputed) %>%
-    inner_join(imputed_long23 %>%
-                 distinct(Metabolite, .keep_all = TRUE), by = "Metabolite") %>%
-    mutate(Dataset = "Imputed_Values")
-  
-  #merge original and imputed datasets
-  comparison23 <- original_long23 %>%
-    left_join(imputed_long23 %>%
-                distinct(Metabolite, .keep_all = TRUE), by = "Metabolite") %>%
-    pivot_longer(cols = c("Original_Data", "Imputed_Data"), 
-                 names_to = "Dataset", values_to = "Value")
-  
-  #add Imputed_Only as a separate dataset
-  imputed_only23 <- imputed_only23 %>%
-    mutate(Value = Imputed_Data, Dataset = "Imputed_Values") %>%
-    select(Metabolite, Dataset, Value)
-  
-  #combine both datasets
-  comparison23 <- bind_rows(comparison23, imputed_only23)
-  
-  #convert data to long format
-  imputed_long24 <- imputed_data24 %>%
-    pivot_longer(cols = everything(), names_to = "Metabolite", values_to = "Imputed_Data")
-  
-  original_long24 <- original_data24 %>%
-    pivot_longer(cols = everything(), names_to = "Metabolite", values_to = "Original_Data")
-  
-  #identify imputed values
-  imputed_only24 <- original_long24 %>%
-    mutate(Imputed = is.na(Original_Data)) %>%
-    filter(Imputed) %>%
-    inner_join(imputed_long24 %>%
-                 distinct(Metabolite, .keep_all = TRUE), by = "Metabolite") %>%
-    mutate(Dataset = "Imputed_Values")
-  
-  #merge original and imputed datasets
-  comparison24 <- original_long24 %>%
-    left_join(imputed_long24 %>%
-                distinct(Metabolite, .keep_all = TRUE), by = "Metabolite") %>%
-    pivot_longer(cols = c("Original_Data", "Imputed_Data"), 
-                 names_to = "Dataset", values_to = "Value")
-  
-  #add Imputed_Only as a separate dataset
-  imputed_only24 <- imputed_only24 %>%
-    mutate(Value = Imputed_Data, Dataset = "Imputed_Values") %>%
-    select(Metabolite, Dataset, Value)
-  
-  #combine both datasets
-  comparison24 <- bind_rows(comparison24, imputed_only24)
-  
-  # Open a PDF device to save the plot
-  pdf("/Users/marcinebessire/Desktop/project/RF_Distribution_Comparison.pdf", width = 8, height = 6)
-  
-  #generate the plot23
-  p23 <- ggplot(comparison23, aes(x = Value, fill = Dataset)) +
-    geom_density(alpha = 0.5) +  #transparent for overlap
-    labs(title = "Distribution of Original/Imputed Data and Imputed Values with with RF Imputation (2023)",
-         x = "Metabolite Value",
-         y = "Density") +
-    theme_minimal() + 
-    scale_fill_manual(values = c("Original_Data" = "lightblue", 
-                                 "Imputed_Data" = "red", 
-                                 "Imputed_Values" = "green")) +
-    xlim(-10, 50)
-  
-  print(p23)
-  
-  #generate the plot23
-  p24 <- ggplot(comparison24, aes(x = Value, fill = Dataset)) +
-    geom_density(alpha = 0.5) +  #transparent for overlap
-    labs(title = "Distribution of Original/Imputed Data and Imputed Values with with RF Imputation (2024)",
-         x = "Metabolite Value",
-         y = "Density") +
-    theme_minimal() + 
-    scale_fill_manual(values = c("Original_Data" = "lightblue", 
-                                 "Imputed_Data" = "red", 
-                                 "Imputed_Values" = "green")) +
-    xlim(-10, 50)
-  
-  print(p24)
-  
-  dev.off()
-}
-
-density_plot_RF <- plot_imputation_distribution(numeric_23, numeric_24, imputed_RF_23, imputed_RF_24)
-
-# Part 4.2 -----
-# QQ plot comparing distribution
+# Distribution plot before and after Imputation and Imputed Values Only 
 
 #2023
 #convert data to long format for visualization
@@ -291,6 +191,14 @@ imputed_only_23 <- imputed_only_23 %>%
 #combine both datasets
 comparison_23 <- bind_rows(comparison_23, imputed_only_23)
 
+#Check row count again 
+#2023: should have 99 MV and 6972 total values
+dataset_counts <- comparison_23 %>%
+  group_by(Dataset) %>%
+  summarise(Count = n())
+
+print(dataset_counts) #99 MV 
+
 #2024
 #convert data to long format for visualization
 imputed_24_long <- imputed_RF_24 %>%
@@ -322,8 +230,48 @@ imputed_only_24 <- imputed_only_24 %>%
 #combine both datasets
 comparison_24 <- bind_rows(comparison_24, imputed_only_24)
 
+#2024: should have 526 MV and 6048 total values
+dataset_counts <- comparison_24 %>%
+  group_by(Dataset) %>%
+  summarise(Count = n())
 
-pdf("/Users/marcinebessire/Desktop/project/RF_QQ_Plots.pdf", width = 8, height = 6)
+print(dataset_counts) #526 MV
+
+#Now plot 
+#open a PDF device to save multiple plots
+pdf("/Users/marcinebessire/Desktop/project/RF_Distribution.pdf", width = 8, height = 6)
+
+#2023 plot 
+ggplot(comparison_23, aes(x = Value, fill = Dataset)) +
+  geom_density(alpha = 0.5) +  # Transparency for overlapping
+  labs(title = "Distribution of Original/Imputed Data and Imputed Values with RF Imputation (2023)",
+       x = "Metabolite Value",
+       y = "Density") +
+  theme_minimal() + 
+  scale_fill_manual(values = c("Original_Data" = "lightblue", 
+                               "Imputed_Data" = "red", 
+                               "Imputed_Values" = "green")) +
+  xlim(-10,50)
+
+#2024 plot
+#plot density distributions for original and imputed data separately
+ggplot(comparison_24, aes(x = Value, fill = Dataset)) +
+  geom_density(alpha = 0.5) +  #transparency for overlapping
+  labs(title = "Distribution of Original/Imputed Data, and Imputed Values with RF Imputation (2024)",
+       x = "Metabolite Value",
+       y = "Density") +
+  theme_minimal() + 
+  scale_fill_manual(values = c("Original_Data" = "lightblue", 
+                               "Imputed_Data" = "red", 
+                               "Imputed_Values" = "green")) +
+  xlim(-10,50)
+
+dev.off()
+
+# Part 7.2 -----
+# QQ plot comparing distribution
+
+pdf("/Users/marcinebessire/Desktop/project/RF_QQplots.pdf", width = 8, height = 6)
 
 #QQ Plot Function
 qq_plot <- function(data_x, data_y, x_label, y_label, title) {
@@ -381,7 +329,7 @@ imputed_24_clean <- remove_outliers(comparison_24$Value[comparison_24$Dataset ==
 original_24_clean <- remove_outliers(comparison_24$Value[comparison_24$Dataset == "Original_Data"])
 
 #pdf to save the QQ plots
-pdf("/Users/marcinebessire/Desktop/project/RF_QQ_Plots_NoOutliers.pdf", width = 8, height = 6)
+pdf("/Users/marcinebessire/Desktop/project/RF_QQplots_NoOutliers.pdf", width = 8, height = 6)
 
 #QQ Plot: Imputed Data 2023 vs. Original Data 2023
 print(qq_plot(original_23_clean, imputed_23_clean, 
@@ -404,134 +352,136 @@ print(qq_plot(original_23_clean, original_24_clean,
               "QQ Plot: Original Data 2024 vs. Original Data 2023"))
 
 dev.off()
-# Part 5 ------
+
+# Part 8 ------
 # calculate normalized difference of each imputation (before and after) and plot
 
-calculate_normalized_difference <- function(original_data23, original_data24, imputed_data23, imputed_data24) {
-  #mean before imputation (2023)
-  mean_before23 <- original_data23 %>%
-    summarise(across(everything(), mean, na.rm = TRUE)) %>%
-    pivot_longer(cols = everything(), names_to = "Metabolite", values_to = "Mean_Before")
-  
-  #mean after imputation (2023)
-  mean_after23 <- imputed_data23 %>%
-    summarise(across(everything(), mean, na.rm = TRUE)) %>%
-    pivot_longer(cols = everything(), names_to = "Metabolite", values_to = "Mean_After")
-  
-  #merge before and after means (2023)
-  mean_comparison23 <- left_join(mean_before23, mean_after23, by = "Metabolite") %>%
-    mutate(Normalized_Difference = (Mean_After - Mean_Before) / Mean_Before)
-  
-  #mean before imputation (2024)
-  mean_before24 <- original_data24 %>%
-    summarise(across(everything(), mean, na.rm = TRUE)) %>%
-    pivot_longer(cols = everything(), names_to = "Metabolite", values_to = "Mean_Before")
-  
-  #mean after imputation (2024)
-  mean_after24 <- imputed_data24 %>%
-    summarise(across(everything(), mean, na.rm = TRUE)) %>%
-    pivot_longer(cols = everything(), names_to = "Metabolite", values_to = "Mean_After")
-  
-  #merge before and after means (2024)
-  mean_comparison24 <- left_join(mean_before24, mean_after24, by = "Metabolite") %>%
-    mutate(Normalized_Difference = (Mean_After - Mean_Before) / Mean_Before)
-  
-  
-  pdf("/Users/marcinebessire/Desktop/project/RF_normalized_difference.pdf", width = 10, height = 6)
-  
-  #plot for 2023
-  p23 <- ggplot(mean_comparison23, aes(x = Metabolite, y = Normalized_Difference, fill = Normalized_Difference)) +
-    geom_bar(stat = "identity") +
-    theme_minimal() +
-    labs(title = "Normalized Difference in Mean Before and After Imputation with RF Imputation (2023)",
-         x = "Metabolite",
-         y = "Normalized Difference") +
-    theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
-    scale_fill_gradient2(low = "blue", mid = "white", high = "red", midpoint = 0)
-  
-  print(p23)
-  
-  #density plot for 2023
-  p23_density <- ggplot(mean_comparison23, aes(x = Normalized_Difference)) +
-    geom_density(fill = "blue", alpha = 0.4, color = "black") +
-    theme_minimal() +
-    labs(title = "Density Plot of Normalized Difference with RF Imputation (2023)",
-         x = "Normalized Difference",
-         y = "Density") +
-    xlim(-0.4, 0.4) +
-    geom_vline(xintercept = 0, linetype = "dashed", color = "red")
-  
-  print(p23_density)
-  
-  #plot for 2024
-  p24 <- ggplot(mean_comparison24, aes(x = Metabolite, y = Normalized_Difference, fill = Normalized_Difference)) +
-    geom_bar(stat = "identity") +
-    theme_minimal() +
-    labs(title = "Normalized Difference in Mean Before and After Imputation with RF Imputation(2024)",
-         x = "Metabolite",
-         y = "Normalized Difference") +
-    theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
-    scale_fill_gradient2(low = "blue", mid = "white", high = "red", midpoint = 0)
-  
-  print(p24)
-  
-  #Density plot for 2024
-  p24_density <- ggplot(mean_comparison24, aes(x = Normalized_Difference)) +
-    geom_density(fill = "blue", alpha = 0.4, color = "black") +
-    theme_minimal() +
-    labs(title = "Density Plot of Normalized Difference with RF Imputation (2024)",
-         x = "Normalized Difference",
-         y = "Density") +
-    xlim(-0.4, 0.4) +
-    geom_vline(xintercept = 0, linetype = "dashed", color = "red")
-  
-  print(p24_density)
-    
-  
-  dev.off()
-}
+#mean before imputation
+mean_before23 <- numeric_23 %>%
+  summarise(across(everything(), mean, na.rm = TRUE)) %>%
+  pivot_longer(cols = everything(), names_to = "Metabolite", values_to = "Mean_Before")
 
-# Call the function to generate all plots in one PDF
-calculate_normalized_difference(numeric_23, numeric_24, imputed_RF_23, imputed_RF_24)
+sd_before23 <- numeric_23 %>%
+  summarise(across(everything(), sd, na.rm = TRUE)) %>%
+  pivot_longer(cols = everything(), names_to = "Metabolite", values_to = "SD_Before")
 
 
+#means after imputation
+mean_after23 <- imputed_RF_23 %>%
+  summarise(across(everything(), mean, na.rm = TRUE)) %>%
+  pivot_longer(cols = everything(), names_to = "Metabolite", values_to = "Mean_After")
 
-# # Extra Part (Correlation) ----- 
-# # Check if Impuation method was good 
-# 
-# #OOB (out of bag imputation error) is the normalized mean squared error (NMSE) => the lower the better
-# #NMSE = 0 means perfect prediction
-# OOB23 <- RF_data23$OOBerror #0.005697
-# OOB24 <- RF_data24$OOBerror #0.40187 higher error, less effecitve imputation 
-# 
-# # Correlation analysis 
-# cor_before_23 <- cor(numeric_23, use = "pairwise.complete.obs")
-# cor_after_23 <- cor(imputed_RF_23)
-# 
-# # Heat map
-# par(mfrow = c(1,2)) #for side by side plots
-# corrplot(cor_before_23, method = "color", tl.cex = 0.6, title = "Before Imputation (2023)")
-# corrplot(cor_after_23, method = "color", tl.cex = 0.6, title = "After Imputation (2023)")
-# dev.off()
-# 
-# # Scatter plot 
-# #identify missing vlaues 
-# missing_val <- is.na(numeric_23) #total of 99 are missing
-# 
-# #create logical matrix identifying if a pair of metabolites had missing values
-# missing_pairs <- (missing_val %*% t(missing_val)) > 0 #True 
-# 
-# #extract upper triangular part of matrix 
-# imputed_indices <- missing_pairs[upper.tri(missing_pairs, diag = FALSE)]
-# cor_values_before23 <- cor_before_23[upper.tri(cor_before_23, diag = FALSE)]
-# cor_values_after23 <- cor_after_23[upper.tri(cor_after_23, diag = FALSE)]
-# 
-# plot(cor_values_before23, cor_values_after23,
-#      xlab = "Before Imputation",
-#      ylab = "After Imputation",
-#      main = "Correlation Comparison",
-#      col = ifelse(imputed_indices, "red", "blue"), #red for imputed pairs
-#      pch = 19) 
-#      
-# abline(0,1,col = "black", lwd = 2) #ideally points should line on line
+#merge before and after mean values
+mean_comparison23 <- left_join(mean_before23, mean_after23, by = "Metabolite")
 
+#compute normalized difference: (Mean_After - Mean_Before) / Mean_Before
+mean_comparison23 <- mean_comparison23 %>%
+  mutate(Normalized_Difference = (Mean_After - Mean_Before) / Mean_Before)
+
+#mean before imputation
+mean_before24 <- numeric_24 %>%
+  summarise(across(everything(), mean, na.rm = TRUE)) %>%
+  pivot_longer(cols = everything(), names_to = "Metabolite", values_to = "Mean_Before")
+
+#means after imputation
+mean_after24 <- imputed_RF_24 %>%
+  summarise(across(everything(), mean, na.rm = TRUE)) %>%
+  pivot_longer(cols = everything(), names_to = "Metabolite", values_to = "Mean_After")
+
+#merge before and after mean values
+mean_comparison24 <- left_join(mean_before24, mean_after24, by = "Metabolite")
+
+#compute normalized difference: (Mean_After - Mean_Before) / Mean_Before
+mean_comparison24 <- mean_comparison24 %>%
+  mutate(Normalized_Difference = (Mean_After - Mean_Before) / Mean_Before)
+
+pdf("/Users/marcinebessire/Desktop/project/RF_Normalized_Difference.pdf", width = 10, height = 6)
+
+#plot normalized difference
+ggplot(mean_comparison23, aes(x = Metabolite, y = Normalized_Difference, fill = Normalized_Difference)) +
+  geom_bar(stat = "identity") +
+  theme_minimal() +
+  labs(title = "Normalized Difference in Mean Before and After with RF Imputation (2023)",
+       x = "Metabolite",
+       y = "Normalized Difference") +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
+  scale_fill_gradient2(low = "blue", mid = "white", high = "red", midpoint = 0)
+
+
+#plot normalized difference
+ggplot(mean_comparison24, aes(x = Metabolite, y = Normalized_Difference, fill = Normalized_Difference)) +
+  geom_bar(stat = "identity") +
+  theme_minimal() +
+  labs(title = "Normalized Difference in Mean Before and After with RF Imputation (2024)",
+       x = "Metabolite",
+       y = "Normalized Difference") +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
+  scale_fill_gradient2(low = "blue", mid = "white", high = "red", midpoint = 0)
+
+#plot the density of the normalized difference
+ggplot(mean_comparison23, aes(x = Normalized_Difference)) +
+  geom_density(fill = "blue", alpha = 0.4, color = "black") +  #density plot
+  theme_minimal() +
+  labs(title = "Density Plot of Normalized Difference with RF Imputation (2023)",
+       x = "Normalized Difference",
+       y = "Density") +
+  xlim(-0.2,0.2) +
+  geom_vline(xintercept = 0, linetype = "dashed", color = "red")  #reference line at 0
+
+#plot the density of the normalized difference
+ggplot(mean_comparison24, aes(x = Normalized_Difference)) +
+  geom_density(fill = "blue", alpha = 0.4, color = "black") +  #density plot
+  theme_minimal() +
+  labs(title = "Density Plot of Normalized Difference with RF Imputation (2024)",
+       x = "Normalized Difference",
+       y = "Density") +
+  xlim(-0.4,0.4) +
+  geom_vline(xintercept = 0, linetype = "dashed", color = "red")  #reference line at 0
+
+dev.off()
+
+# Part 9 -----
+# Kolomogorov-Smirnov test: nonparametric test to test whether two ssamples came from same distirbution
+
+#original 2023 vs imputed 2023
+ks.test(original_23_long$Original_Data, imputed_23_long$Imputed_Data)
+#original 2024 vs imputed 2024
+ks.test(original_24_long$Original_Data, imputed_24_long$Imputed_Data)
+#original 2023 vs Original 2024
+ks.test(original_23_long$Original_Data, original_24_long$Original_Data)
+#imputed 2023 vs imputed 2024
+ks.test(imputed_23_long$Imputed_Data, imputed_24_long$Imputed_Data)
+
+pdf("/Users/marcinebessire/Desktop/project/RF_QQ2.pdf", width = 10, height = 6)
+
+qqplot(original_23_long$Original_Data, imputed_23_long$Imputed_Data,
+       main = "Q-Q Plot: Original vs Imputed Data (2023)",
+       xlab = "Original Data Quantiles",
+       ylab = "Imputed Data Quantiles",
+       col = "blue", pch = 19)
+abline(0, 1, col = "red", lwd = 2)  
+
+qqplot(original_24_long$Original_Data, imputed_24_long$Imputed_Data,
+       main = "Q-Q Plot: Original vs Imputed Data (2024)",
+       xlab = "Original Data Quantiles",
+       ylab = "Imputed Data Quantiles",
+       col = "blue", pch = 19)
+abline(0, 1, col = "red", lwd = 2)  
+
+
+qqplot(original_23_long$Original_Data, original_24_long$Original_Data,
+       main = "Q-Q Plot: 2023 vs 2024 Data (Original)",
+       xlab = "Original Data Quantiles",
+       ylab = "Imputed Data Quantiles",
+       col = "blue", pch = 19)
+abline(0, 1, col = "red", lwd = 2)  
+
+qqplot(imputed_23_long$Imputed_Data, imputed_24_long$Imputed_Data,
+       main = "Q-Q Plot: 2023 vs 2024 Data (Imputed)",
+       xlab = "Original Data Quantiles",
+       ylab = "Imputed Data Quantiles",
+       col = "blue", pch = 19)
+abline(0, 1, col = "red", lwd = 2)  
+
+
+dev.off()

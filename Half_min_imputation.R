@@ -10,11 +10,11 @@ library(dplyr)
 # Part 1 ------
 # Perform Half-min imputation
 
-#load data with CV threshold 30
+#load data whole data
 final_data_2023 <- read.csv("/Users/marcinebessire/Desktop/project/Final_Data_2023.csv", check.names = FALSE)
 final_data_2024 <- read.csv("/Users/marcinebessire/Desktop/project/Final_Data_2024.csv", check.names = FALSE)
 
-#load original common metabolites
+#load common metabolites
 original_23 <- read.csv("/Users/marcinebessire/Desktop/project/Common_Metabolites23.csv", check.names = FALSE)
 original_24 <- read.csv("/Users/marcinebessire/Desktop/project/Common_Metabolites24.csv", check.names = FALSE)
 
@@ -23,8 +23,8 @@ original_23_metabolites <- original_23[, 6:ncol(original_23)]
 original_24_metabolites <- original_24[, 6:ncol(original_24)]
 
 #count how many missing values are there
-mv23 <- sum(is.na(original_23_metabolites)) #26 MV out of 4980 => 0.522%
-mv24 <- sum(is.na(original_24_metabolites)) #333 MV out of 4320 => 7.708%
+mv23 <- sum(is.na(original_23_metabolites)) #99 MV 
+mv24 <- sum(is.na(original_24_metabolites)) #526 MV 
 
 #imputation for cut 2024
 #cut_2024 <- read.csv("/Users/marcinebessire/Desktop/project/Cut_Common_Metabolites24.csv", check.names = FALSE)
@@ -68,9 +68,8 @@ cols_df2 <- setdiff(colnames(imputed_data_24), exclude_cols)
 #find common columns
 common_cols <- intersect(cols_df1, cols_df2)
 
-#visualize results
+#visualize how many common columns
 cat("Number of common columns:", length(common_cols), "\n") #84 and 60 if CV 30%
-cat("Common columns:", paste(common_cols, collapse=", ")) 
 
 #make new dataframe for each year with those 84 columns + metadata
 final_col <- c(exclude_cols, common_cols)
@@ -213,70 +212,70 @@ non_normal_count_original23 <- sum(shapiro_df_original23$p_value < 0.05)
 non_normal_count_original23 #59 metabolites are non-normal distributed and with CV 60
 
 
-# Part 5 -------
-# Correlation Coefficient for each year (between CV (values before imputation) and Metabolite after Half min Imputation)
-
-#load CV data for both years 
-cv_res23 <- read.csv("/Users/marcinebessire/Desktop/project/Common_CV_results23.csv", check.names = FALSE)
-cv_res24 <- read.csv("/Users/marcinebessire/Desktop/project/Common_CV_results24.csv", check.names = FALSE)
-
-#t-test results (p-values)
-df_ttest <- results_ttest
-
-#rename columns for clarity 
-colnames(cv_res23) <- c("Metabolite", "CV [%]")
-colnames(cv_res24) <- c("Metabolite", "CV [%]")
-
-#merge dataframe by metabolites
-merged_23 <- merge(cv_res23, df_ttest, by = "Metabolite")
-merged_24 <- merge(cv_res24, df_ttest, by = "Metabolite")
-
-#calculate correlation coefficient between CV and adjusted p-value 
-#2023
-cor_23 <- cor(merged_23$`CV [%]`, merged_23$adj_p_value, method = "pearson")
-print(paste("Correlation coefficient for 2023:", cor_23)) #-0.0293
-#2024
-cor_24 <- cor(merged_24$`CV [%]`, merged_24$adj_p_value, method = "pearson")
-print(paste("Correlation coefficient for 2024:", cor_24)) #-0.0837
-
-#now plot the data of 2023
-ggplot(merged_23, aes(x = `CV [%]`, y = adj_p_value)) +
-  geom_point() +
-  labs(title = "2023: CV vs Adjusted P-Value",
-       x = "CV [%]", 
-       y = "Adjusted P-Value") +
-  theme_minimal()
-
-#now plot the data of 2024
-ggplot(merged_24, aes(x = `CV [%]`, y = adj_p_value)) +
-  geom_point() +
-  labs(title = "2023: CV vs Adjusted P-Value",
-       x = "CV [%]", 
-       y = "Adjusted P-Value") +
-  xlim(0.0, 50) +
-  ylim(0.0, 0.01)
-  theme_minimal()
-
-#measure Spearman rank correlation (monotonic relationship)  
-cor_23_spearman <- cor(merged_23$CV, merged_23$adj_p_value, method = "spearman")
-cor_24_spearman <- cor(merged_24$CV, merged_24$adj_p_value, method = "spearman")
-print(paste("Spearman Correlation for 2023:", cor_23_spearman)) #-0.105
-print(paste("Spearman Correlation for 2024:", cor_24_spearman)) #-0.05
-
-#check if outliers impact the relationship
-threshold_23 <- quantile(merged_23$`CV [%]`, 0.95)  #95th percentile fitlers top 5% of CV values
-threshold_24 <- quantile(merged_24$`CV [%]`, 0.95)  
-
-filtered_23 <- merged_23 %>% filter(`CV [%]` < threshold_23)
-filtered_24 <- merged_24 %>% filter(`CV [%]` < threshold_24)
-
-cor_23_filtered <- cor(filtered_23$`CV [%]`, filtered_23$adj_p_value, method = "pearson")
-cor_24_filtered <- cor(filtered_24$`CV [%]`, filtered_24$adj_p_value, method = "pearson")
-
-print(paste("Filtered Correlation for 2023:", cor_23_filtered)) #-0.2676
-print(paste("Filtered Correlation for 2024:", cor_24_filtered)) #-0.2495
-
-dev.off()
+# # Part 5 -------
+# # Correlation Coefficient for each year (between CV (values before imputation) and Metabolite after Half min Imputation)
+# 
+# #load CV data for both years 
+# cv_res23 <- read.csv("/Users/marcinebessire/Desktop/project/Common_CV_results23.csv", check.names = FALSE)
+# cv_res24 <- read.csv("/Users/marcinebessire/Desktop/project/Common_CV_results24.csv", check.names = FALSE)
+# 
+# #t-test results (p-values)
+# df_ttest <- results_ttest
+# 
+# #rename columns for clarity 
+# colnames(cv_res23) <- c("Metabolite", "CV [%]")
+# colnames(cv_res24) <- c("Metabolite", "CV [%]")
+# 
+# #merge dataframe by metabolites
+# merged_23 <- merge(cv_res23, df_ttest, by = "Metabolite")
+# merged_24 <- merge(cv_res24, df_ttest, by = "Metabolite")
+# 
+# #calculate correlation coefficient between CV and adjusted p-value 
+# #2023
+# cor_23 <- cor(merged_23$`CV [%]`, merged_23$adj_p_value, method = "pearson")
+# print(paste("Correlation coefficient for 2023:", cor_23)) #-0.0293
+# #2024
+# cor_24 <- cor(merged_24$`CV [%]`, merged_24$adj_p_value, method = "pearson")
+# print(paste("Correlation coefficient for 2024:", cor_24)) #-0.0837
+# 
+# #now plot the data of 2023
+# ggplot(merged_23, aes(x = `CV [%]`, y = adj_p_value)) +
+#   geom_point() +
+#   labs(title = "2023: CV vs Adjusted P-Value",
+#        x = "CV [%]", 
+#        y = "Adjusted P-Value") +
+#   theme_minimal()
+# 
+# #now plot the data of 2024
+# ggplot(merged_24, aes(x = `CV [%]`, y = adj_p_value)) +
+#   geom_point() +
+#   labs(title = "2023: CV vs Adjusted P-Value",
+#        x = "CV [%]", 
+#        y = "Adjusted P-Value") +
+#   xlim(0.0, 50) +
+#   ylim(0.0, 0.01)
+#   theme_minimal()
+# 
+# #measure Spearman rank correlation (monotonic relationship)  
+# cor_23_spearman <- cor(merged_23$CV, merged_23$adj_p_value, method = "spearman")
+# cor_24_spearman <- cor(merged_24$CV, merged_24$adj_p_value, method = "spearman")
+# print(paste("Spearman Correlation for 2023:", cor_23_spearman)) #-0.105
+# print(paste("Spearman Correlation for 2024:", cor_24_spearman)) #-0.05
+# 
+# #check if outliers impact the relationship
+# threshold_23 <- quantile(merged_23$`CV [%]`, 0.95)  #95th percentile fitlers top 5% of CV values
+# threshold_24 <- quantile(merged_24$`CV [%]`, 0.95)  
+# 
+# filtered_23 <- merged_23 %>% filter(`CV [%]` < threshold_23)
+# filtered_24 <- merged_24 %>% filter(`CV [%]` < threshold_24)
+# 
+# cor_23_filtered <- cor(filtered_23$`CV [%]`, filtered_23$adj_p_value, method = "pearson")
+# cor_24_filtered <- cor(filtered_24$`CV [%]`, filtered_24$adj_p_value, method = "pearson")
+# 
+# print(paste("Filtered Correlation for 2023:", cor_23_filtered)) #-0.2676
+# print(paste("Filtered Correlation for 2024:", cor_24_filtered)) #-0.2495
+# 
+# dev.off()
 
 # # Part 6 -------
 # # check correlation coefficient before and after imputation for each year
@@ -369,6 +368,14 @@ imputed_only_23 <- imputed_only_23 %>%
 #combine both datasets
 comparison_23 <- bind_rows(comparison_23, imputed_only_23)
 
+#Check row count again 
+#2023: should have 99 MV and 6972 total values
+dataset_counts <- comparison_23 %>%
+  group_by(Dataset) %>%
+  summarise(Count = n())
+
+print(dataset_counts) #99 MV 
+
 #2024
 #convert data to long format for visualization
 half_min_24_long <- half_min_24_metabolites %>%
@@ -400,9 +407,16 @@ imputed_only_24 <- imputed_only_24 %>%
 #combine both datasets
 comparison_24 <- bind_rows(comparison_24, imputed_only_24)
 
+#2024: should have 526 MV and 6048 total values
+dataset_counts <- comparison_24 %>%
+  group_by(Dataset) %>%
+  summarise(Count = n())
+
+print(dataset_counts) #526 MV
+
 #Now plot 
 #open a PDF device to save multiple plots
-pdf("/Users/marcinebessire/Desktop/project/Halfmin_Distribution_Comparison.pdf", width = 8, height = 6)
+pdf("/Users/marcinebessire/Desktop/project/Halfmin_Distribution.pdf", width = 8, height = 6)
 
 #2023 plot 
 ggplot(comparison_23, aes(x = Value, fill = Dataset)) +
@@ -419,7 +433,7 @@ ggplot(comparison_23, aes(x = Value, fill = Dataset)) +
 #2024 plot
 #plot density distributions for original and imputed data separately
 ggplot(comparison_24, aes(x = Value, fill = Dataset)) +
-  geom_density(alpha = 0.5) +  # Transparency for overlapping
+  geom_density(alpha = 0.5) +  #transparency for overlapping
   labs(title = "Distribution of Original/Imputed Data, and Imputed Values with Half-min Imputation (2024)",
        x = "Metabolite Value",
        y = "Density") +
@@ -434,7 +448,7 @@ dev.off()
 # Part 7.2 -----
 # QQ plot comparing distribution
 
-pdf("/Users/marcinebessire/Desktop/project/Halfmin_QQ_Plots.pdf", width = 8, height = 6)
+pdf("/Users/marcinebessire/Desktop/project/Halfmin_QQplots.pdf", width = 8, height = 6)
 
 #QQ Plot Function
 qq_plot <- function(data_x, data_y, x_label, y_label, title) {
@@ -492,7 +506,7 @@ imputed_24_clean <- remove_outliers(comparison_24$Value[comparison_24$Dataset ==
 original_24_clean <- remove_outliers(comparison_24$Value[comparison_24$Dataset == "Original_Data"])
 
 #pdf to save the QQ plots
-pdf("/Users/marcinebessire/Desktop/project/Halfmin_QQ_Plots_NoOutliers.pdf", width = 8, height = 6)
+pdf("/Users/marcinebessire/Desktop/project/Halfmin_QQplots_NoOutliers.pdf", width = 8, height = 6)
 
 #QQ Plot: Imputed Data 2023 vs. Original Data 2023
 print(qq_plot(original_23_clean, imputed_23_clean, 
@@ -539,6 +553,7 @@ mean_comparison23 <- left_join(mean_before23, mean_after23, by = "Metabolite")
 
 #compute normalized difference: (Mean_After - Mean_Before) / Mean_Before
 mean_comparison23 <- mean_comparison23 %>%
+  
   mutate(Normalized_Difference = (Mean_After - Mean_Before) / Mean_Before)
 
 #mean before imputation
@@ -558,13 +573,13 @@ mean_comparison24 <- left_join(mean_before24, mean_after24, by = "Metabolite")
 mean_comparison24 <- mean_comparison24 %>%
   mutate(Normalized_Difference = (Mean_After - Mean_Before) / Mean_Before)
 
-pdf("/Users/marcinebessire/Desktop/project/Halfmin_Normalized_Difference_Comparison.pdf", width = 10, height = 6)
+pdf("/Users/marcinebessire/Desktop/project/Halfmin_Normalized_Difference.pdf", width = 10, height = 6)
 
 #plot normalized difference
 ggplot(mean_comparison23, aes(x = Metabolite, y = Normalized_Difference, fill = Normalized_Difference)) +
   geom_bar(stat = "identity") +
   theme_minimal() +
-  labs(title = "Normalized Difference in Mean Before and After Half-min Imputation (2023)",
+  labs(title = "Normalized Difference in Mean Before and After with Half-min Imputation (2023)",
        x = "Metabolite",
        y = "Normalized Difference") +
   theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
@@ -575,7 +590,7 @@ ggplot(mean_comparison23, aes(x = Metabolite, y = Normalized_Difference, fill = 
 ggplot(mean_comparison24, aes(x = Metabolite, y = Normalized_Difference, fill = Normalized_Difference)) +
   geom_bar(stat = "identity") +
   theme_minimal() +
-  labs(title = "Normalized Difference in Mean Before and After Half-min Imputation (2024)",
+  labs(title = "Normalized Difference in Mean Before and After with Half-min Imputation (2024)",
        x = "Metabolite",
        y = "Normalized Difference") +
   theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
@@ -603,19 +618,49 @@ ggplot(mean_comparison24, aes(x = Normalized_Difference)) +
 
 dev.off()
 
-# FINALLY: Check row count again 
-#2023: should have 99 MV and 6972 total values
-dataset_counts <- comparison_23 %>%
-  group_by(Dataset) %>%
-  summarise(Count = n())
+# Part 9 -----
+# Kolomogorov-Smirnov test: nonparametric test to test whether two ssamples came from same distirbution
 
-print(dataset_counts)
-#2024: should have 526 MV and 6048 total values
-dataset_counts <- comparison_24 %>%
-  group_by(Dataset) %>%
-  summarise(Count = n())
-
-print(dataset_counts)
+#original 2023 vs imputed 2023
+ks.test(original_23_long$Original_Data, half_min_23_long$Imputed_Data)
+#original 2024 vs imputed 2024
+ks.test(original_24_long$Original_Data, half_min_24_long$Imputed_Data)
+#original 2023 vs Original 2024
+ks.test(original_23_long$Original_Data, original_24_long$Original_Data)
+#imputed 2023 vs imputed 2024
+ks.test(half_min_23_long$Imputed_Data, half_min_24_long$Imputed_Data)
 
 
+pdf("/Users/marcinebessire/Desktop/project/Halfmin_QQ2.pdf", width = 10, height = 6)
 
+qqplot(original_23_long$Original_Data, half_min_23_long$Imputed_Data,
+       main = "Q-Q Plot: Original vs Imputed Data (2023)",
+       xlab = "Original Data Quantiles",
+       ylab = "Imputed Data Quantiles",
+       col = "blue", pch = 19)
+abline(0, 1, col = "red", lwd = 2)  
+
+qqplot(original_24_long$Original_Data, half_min_24_long$Imputed_Data,
+       main = "Q-Q Plot: Original vs Imputed Data (2024)",
+       xlab = "Original Data Quantiles",
+       ylab = "Imputed Data Quantiles",
+       col = "blue", pch = 19)
+abline(0, 1, col = "red", lwd = 2)  
+
+
+qqplot(original_23_long$Original_Data, original_24_long$Original_Data,
+       main = "Q-Q Plot: 2023 vs 2024 Data (Original)",
+       xlab = "Original Data Quantiles",
+       ylab = "Imputed Data Quantiles",
+       col = "blue", pch = 19)
+abline(0, 1, col = "red", lwd = 2)  
+
+qqplot(half_min_23_long$Imputed_Data, half_min_24_long$Imputed_Data,
+       main = "Q-Q Plot: 2023 vs 2024 Data (Imputed)",
+       xlab = "Original Data Quantiles",
+       ylab = "Imputed Data Quantiles",
+       col = "blue", pch = 19)
+abline(0, 1, col = "red", lwd = 2)  
+
+
+dev.off()
