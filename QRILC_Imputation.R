@@ -53,6 +53,7 @@ exp_QRILC24 <- exp(imputed_QRILC24) - 1e-6
 QRILC23 <- as.data.frame(exp_QRILC23)
 QRILC24 <- as.data.frame(exp_QRILC24)
 
+
 # #function for QRILC Imputation with Lower and Upper Bound
 # QRILC_imputation_with_bounds <- function(data, lower_percentile = 0, upper_percentile = 0.99) {
 #   #ensure data is a matrix
@@ -550,3 +551,11 @@ abline(0, 1, col = "red", lwd = 2)
 
 
 dev.off()
+
+
+#save to file 
+path23 <- paste0("/Users/marcinebessire/Desktop/project/QRILC_Imputation23.csv")
+write_csv(imputed_23_long, path23)
+
+path24 <- paste0("/Users/marcinebessire/Desktop/project/QRILC_Imputation24.csv")
+write_csv(imputed_24_long, path24)

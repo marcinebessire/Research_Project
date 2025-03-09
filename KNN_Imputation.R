@@ -235,7 +235,7 @@ pdf("/Users/marcinebessire/Desktop/project/KNN_Distribution.pdf", width = 8, hei
 
 #2023 plot 
 ggplot(comparison_23, aes(x = Value, fill = Dataset)) +
-  geom_density(alpha = 0.5) +  # Transparency for overlapping
+  geom_density(alpha = 0.5) +  #transparency for overlapping
   labs(title = "Distribution of Original/Imputed Data and Imputed Values with KNN Imputation (2023)",
        x = "Metabolite Value",
        y = "Density") +
@@ -477,3 +477,11 @@ abline(0, 1, col = "red", lwd = 2)
 
 
 dev.off()
+
+
+#save to file 
+path_knn23 <- paste0("/Users/marcinebessire/Desktop/project/KNN_Imputation23.csv")
+write_csv(imputed_23_long, path_knn23)
+
+path_knn24 <- paste0("/Users/marcinebessire/Desktop/project/KNN_Imputation24.csv")
+write_csv(imputed_24_long, path_knn24)

@@ -66,8 +66,9 @@ res_24 <- check_significance(t_test_24) #0
 # Significance test for Before and After New Chip from Data 2024
 #cut data of 2024 into two parts (before and after new chip)
 before_chip_data24 <- data24 %>% #before new chip
-  filter(MonthDay < "09-10") 
+  filter(MonthDay < "02-06") 
 after_chip_data24 <- anti_join(data24,before_chip_data24) #after new chip 
+
 
 #T-TEST
 func_before_after_t_test <- function(data1, data2) {
@@ -106,9 +107,11 @@ func_before_after_t_test <- function(data1, data2) {
 }
 
 #perform t_test
-t_test_before_after24 <- func_before_after_t_test(before_chip_data24, after_chip_data24)
+t_test_before_after24 <- func_before_after_t_test(before_chip_data24, data23)
 #check significance 
-res_before_after24 <- check_significance(t_test_before_after24) #34 
+t_test_res <- check_significance(t_test_before_after24) #34 
+t_test_res
+
 
 #WILCOX
 func_before_after_wilcox <- function(data1, data2) {
@@ -146,6 +149,8 @@ func_before_after_wilcox <- function(data1, data2) {
 }
 
 #perform wilocx
-wilcox_before_after24 <- func_before_after_wilcox(before_chip_data24, after_chip_data24)
+wilcox_before_after24 <- func_before_after_wilcox(before_chip_data24, data23)
 #check significance 
 wilcoxres_before_after24 <- check_significance(wilcox_before_after24) #17
+wilcox_before_after24
+

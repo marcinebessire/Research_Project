@@ -52,6 +52,7 @@ half_min_imputation <- function(df,year){
 imputed_data_23 <- half_min_imputation(final_data_2023, "2023")
 imputed_data_24 <- half_min_imputation(final_data_2024, "2024")
 
+
 #cut data
 #cut_imputed_data_23 <- half_min_imputation(cut_2023, "2023")
 #cut_imputed_data_24 <- half_min_imputation(cut_2024, "2024")
@@ -87,6 +88,7 @@ half_min_24 <- imputed_data_24 %>% select(all_of(final_col))
 #select only metabolite columns (starting from column 6)
 half_min_23_metabolites <- half_min_23[, 6:ncol(half_min_23)]
 half_min_24_metabolites <- half_min_24[, 6:ncol(half_min_24)]
+
 
 #get metabolite column names
 metabolite_cols <- colnames(half_min_23_metabolites)
@@ -664,3 +666,11 @@ abline(0, 1, col = "red", lwd = 2)
 
 
 dev.off()
+
+
+#save to file
+halfmin23 <- paste0("/Users/marcinebessire/Desktop/project/HalfMin_Imputation23.csv")
+write_csv(half_min_23_long, halfmin23)
+
+halfmin24 <- paste0("/Users/marcinebessire/Desktop/project/HalfMin_Imputation24.csv")
+write_csv(half_min_24_long, halfmin24)

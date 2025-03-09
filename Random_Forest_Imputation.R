@@ -33,6 +33,7 @@ RF_data24 <- RF_imputation(numeric_24)
 imputed_RF_23 <- as.data.frame(RF_data23$ximp)
 imputed_RF_24 <- as.data.frame(RF_data24$ximp)
 
+
 # Part 2 --------
 # Wilcoxon rank-sum test (for independent data)
 
@@ -485,3 +486,11 @@ abline(0, 1, col = "red", lwd = 2)
 
 
 dev.off()
+
+
+#save
+path23 <- paste0("/Users/marcinebessire/Desktop/project/RF_Imputation23.csv")
+write_csv(imputed_23_long, path23)
+
+path24 <- paste0("/Users/marcinebessire/Desktop/project/RF_Imputation24.csv")
+write_csv(imputed_24_long, path24)
