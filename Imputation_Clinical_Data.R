@@ -6,6 +6,9 @@ library(tidyr)
 library(missForest)
 library(imputeLCMD)
 
+#load original data
+FAO_original <- read.csv("/Users/marcinebessire/Desktop/project/FAO_data.csv", check.names = FALSE)
+
 #load data with missing values 
 FAO_5pct <- read.csv("/Users/marcinebessire/Desktop/project/FAO_5pct.csv", check.names = FALSE)
 FAO_10pct <- read.csv("/Users/marcinebessire/Desktop/project/FAO_10pct.csv", check.names = FALSE)
@@ -15,7 +18,11 @@ FAO_30pct <- read.csv("/Users/marcinebessire/Desktop/project/FAO_30pct.csv", che
 FAO_40pct <- read.csv("/Users/marcinebessire/Desktop/project/FAO_40pct.csv", check.names = FALSE)
 
 # ------------------------------------
-# Part 1: Half-min Imputation
+# Part 1: Imputation methods 
+# ------------------------------------
+
+# ------------------------------------
+# Part 1.1: Half-min Imputation 
 # ------------------------------------
 
 #function for Half-minimum imputation
@@ -48,7 +55,7 @@ Halfmin_30pct <- half_min_imputation(FAO_30pct)
 Halfmin_40pct <- half_min_imputation(FAO_40pct)
 
 # ------------------------------------
-# Part 2: KNN Imputation
+# Part 1.2: KNN Imputation
 # ------------------------------------
 
 KNN_imputation <- function(data) {
@@ -81,7 +88,7 @@ KNN_30pct <- KNN_imputation(FAO_30pct)
 KNN_40pct <- KNN_imputation(FAO_40pct)
 
 # ------------------------------------
-# Part 3: RF Imputation
+# Part 1.: RF Imputation
 # ------------------------------------
 
 #make function for RF
@@ -112,7 +119,7 @@ RF_30pct <- RF_imputation(FAO_30pct)
 RF_40pct <- RF_imputation(FAO_40pct)
 
 # ------------------------------------
-# Part 4: QRILC Imputation
+# Part 1.4: QRILC Imputation
 # ------------------------------------
 
 #QRILC imputation 
@@ -151,4 +158,183 @@ QRILC_25pct <- QRILC_impuation(FAO_25pct)
 QRILC_30pct <- QRILC_impuation(FAO_30pct)
 QRILC_40pct <- QRILC_impuation(FAO_40pct)
 
+# ------------------------------------
+# Part 2: Statistical Tests  
+# ------------------------------------
+
+# ------------------------------------
+# Part 2.1: T-test
+# ------------------------------------
+
+t_test_func <- function(original, imputed) {
+  #numeric columns
+  numeric <- original[, 6:ncol(original)]
+  
+  #metabolte columns
+  metabolite_cols <- colnames(numeric)
+  
+  #save resutls in dataframe
+  results <- data.frame(
+    Metabolite = metabolite_cols,
+    p_value = numeric(length(metabolite_cols)),
+    statistic = numeric(length(metabolite_cols))
+  )
+  
+  #loop throuh each metabolite and run t-test 
+  for (i in seq_along(metabolite_cols)) {
+    metabolite <- metabolite_cols[i]
+    
+    #perform T-test
+    t_test_result <- t.test(original[[metabolite]], imputed[[metabolite]], paired = FALSE, var.equal = FALSE)
+    
+    #save to dataframe
+    results$p_value[i] <- t_test_result$p.value
+    results$statistic[i] <- t_test_result$statistic
+  }
+  
+  #adjust p-value
+  results$adj_p_value <- p.adjust(results$p_value, method = "BH")
+  
+  return(results)
+
+}
+
+#call t-test function
+#Half-min
+t_test_half_min_5pct <- t_test_func(FAO_original, Halfmin_5pct)
+t_test_half_min_20pct <- t_test_func(FAO_original, Halfmin_20pct)
+t_test_half_min_25pct <- t_test_func(FAO_original, Halfmin_25pct)
+t_test_half_min_30pct <- t_test_func(FAO_original, Halfmin_30pct)
+t_test_half_min_40pct <- t_test_func(FAO_original, Halfmin_40pct)
+#KNN
+t_test_KNN_5pct <- t_test_func(FAO_original, KNN_5pct)
+t_test_KNN_10pct <- t_test_func(FAO_original, KNN_10pct)
+t_test_KNN_20pct <- t_test_func(FAO_original, KNN_20pct)
+t_test_KNN_25pct <- t_test_func(FAO_original, KNN_25pct)
+t_test_KNN_30pct <- t_test_func(FAO_original, KNN_30pct)
+t_test_KNN_40pct <- t_test_func(FAO_original, KNN_40pct)
+#RF
+t_test_RF_20pct <- t_test_func(FAO_original, RF_20pct)
+t_test_RF_25pct <- t_test_func(FAO_original, RF_25pct)
+t_test_RF_40pct <- t_test_func(FAO_original, RF_40pct)
+#QRILC
+t_test_QRILC_20pct <- t_test_func(FAO_original, QRILC_20pct)
+t_test_QRILC_25pct <- t_test_func(FAO_original, QRILC_25pct)
+t_test_QRILC_40pct <- t_test_func(FAO_original, QRILC_40pct)
+
+# ------------------------------------
+# Part 2.2: Wilcoxon rank-sum Test
+# ------------------------------------
+
+wilcoxon_func <- function(original, imputed) {
+  #numeric columns
+  numeric <- original[, 6:ncol(original)]
+  
+  #metabolte columns
+  metabolite_cols <- colnames(numeric)
+  
+  #save resutls in dataframe
+  results <- data.frame(
+    Metabolite = metabolite_cols,
+    p_value = numeric(length(metabolite_cols)),
+    statistic = numeric(length(metabolite_cols))
+  )
+  
+  #loop throuh each metabolite and run t-test 
+  for (i in seq_along(metabolite_cols)) {
+    metabolite <- metabolite_cols[i]
+    
+    #perform T-test
+    wilcox_test_result <- wilcox.test(original[[metabolite]], imputed[[metabolite]], paired = FALSE, exact = FALSE)
+    
+    #save to dataframe
+    results$p_value[i] <- wilcox_test_result$p.value
+    results$statistic[i] <- wilcox_test_result$statistic
+  }
+  
+  #adjust p-value
+  results$adj_p_value <- p.adjust(results$p_value, method = "BH")
+  
+  return(results)
+  
+}
+
+#call wilcoxon function 
+#Halfmin
+wilcox_half_min_5pct <- wilcoxon_func(FAO_original, Halfmin_5pct) 
+wilcox_half_min_20pct <- t_test_func(FAO_original, Halfmin_20pct)
+wilcox_half_min_25pct <- t_test_func(FAO_original, Halfmin_25pct)
+wilcox_half_min_30pct <- t_test_func(FAO_original, Halfmin_30pct)
+wilcox_half_min_40pct <- wilcoxon_func(FAO_original, Halfmin_40pct)
+#KNN
+wilcox_KNN_5pct <- wilcoxon_func(FAO_original, KNN_5pct) 
+wilcox_KNN_20pct <- t_test_func(FAO_original, KNN_20pct)
+wilcox_KNN_25pct <- t_test_func(FAO_original, KNN_25pct)
+wilcox_KNN_30pct <- t_test_func(FAO_original, KNN_30pct)
+wilcox_KNN_40pct <- wilcoxon_func(FAO_original, KNN_40pct)
+#RF
+wilcox_RF_20pct <- wilcoxon_func(FAO_original, RF_20pct) 
+wilcox_RF_25pct <- wilcoxon_func(FAO_original, RF_25pct) 
+wilcox_RF_40pct <- wilcoxon_func(FAO_original, RF_40pct) 
+#QRILC
+wilcox_QRILC_20pct <- wilcoxon_func(FAO_original, QRILC_20pct) 
+wilcox_QRILC_25pct <- wilcoxon_func(FAO_original, QRILC_25pct) 
+wilcox_QRILC_40pct <- wilcoxon_func(FAO_original, QRILC_40pct) 
+
+# ------------------------------------
+# Part 2.3: Check Signficance of Tests
+# ------------------------------------
+
+#check for significance (p value < 0.05) 
+significance <- function(data) {
+  #view significant metabolites with BH adjusted p-value < 0.05
+  data_significant <- data %>% 
+    filter(adj_p_value < 0.05) %>% #usually 0.05 used 
+    arrange(adj_p_value)
+  
+  return(data_significant)
+}
+
+#call significance function on T-test results
+#Halfmin
+signif_halfmin_5pct_t_test <- significance(t_test_half_min_5pct) #0/34
+signif_halfmin_20pct_t_test <- significance(t_test_half_min_20pct) #0/34
+signif_halfmin_25pct_t_test <- significance(t_test_half_min_25pct) #0/34
+signif_halfmin_30pct_t_test <- significance(t_test_half_min_30pct) #0/34
+signif_halfmin_40pct_t_test <- significance(t_test_half_min_40pct) #14/34
+#KNN
+signif_KNN_5pct_t_test <- significance(t_test_KNN_5pct) #0/34
+signif_KNN_10pct_t_test <- significance(t_test_KNN_10pct) #0/34
+signif_KNN_20pct_t_test <- significance(t_test_KNN_20pct) #0/34
+signif_KNN_25pct_t_test <- significance(t_test_KNN_25pct) #0/34
+signif_KNN_40pct_t_test <- significance(t_test_KNN_40pct) #7/34
+#RF
+signif_RF_20pct_t_test <- significance(t_test_RF_20pct) #0/34
+signif_RF_25pct_t_test <- significance(t_test_RF_25pct) #0/34
+signif_RF_40pct_t_test <- significance(t_test_RF_40pct) #0/34
+#QRILC
+signif_QRILC_20pct_t_test <- significance(t_test_QRILC_20pct) #0/34
+signif_QRILC_25pct_t_test <- significance(t_test_QRILC_25pct) #0/34
+signif_QRILC_40pct_t_test <- significance(t_test_QRILC_40pct) #0/34
+
+
+#call significance function on wilcoxon results
+#Halfmin
+signif_halfmin_5pct_wilcox <- significance(wilcox_half_min_5pct) #0/34
+signif_halfmin_20pct_wilcox <- significance(wilcox_half_min_20pct) #0/34
+signif_halfmin_25pct_wilcox <- significance(wilcox_half_min_25pct) #0/34
+signif_halfmin_30pct_wilcox <- significance(wilcox_half_min_30pct) #0/34
+signif_halfmin_40pct_wilcox <- significance(wilcox_half_min_40pct) #21/34
+#KNN
+signif_KNN_20pct_wilcox <- significance(wilcox_half_min_20pct) #0/34
+signif_KNN_25pct_wilcox <- significance(wilcox_half_min_25pct) #0/34
+signif_KNN_40pct_wilcox <- significance(wilcox_half_min_40pct) #21/34
+#RF
+signif_RF_20pct_wilcox <- significance(wilcox_RF_20pct) #0/34
+signif_RF_25pct_wilcox <- significance(wilcox_RF_25pct) #0/34
+signif_RF_40pct_wilcox <- significance(wilcox_RF_40pct) #0/34
+#QRILC
+signif_QRILC_20pct_wilcox <- significance(wilcox_QRILC_20pct) #0/34
+signif_QRILC_25pct_wilcox <- significance(wilcox_QRILC_25pct) #0/34
+signif_QRILC_40pct_wilcox <- significance(wilcox_QRILC_40pct) #0/34
 
