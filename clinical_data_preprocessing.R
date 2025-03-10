@@ -91,20 +91,35 @@ make_new_columns <- function(data){
 }
 
 #call function 
-BAS_data_final <- make_new_columns(BAS_data_cleaned)
-FAO_data_final <- make_new_columns(FAO_data_cleaned)
+BAS_data_extended <- make_new_columns(BAS_data_cleaned)
+FAO_data_extended <- make_new_columns(FAO_data_cleaned)
 
-#function to convert data to numeric
+#function to convert data to numeric and remove whole columns with all same vlaue
 convert_columns_to_numeric <- function(data) {
-  data[, 6:ncol(data)] <- lapply(data[, 6:ncol(data)], function(x) {
+  data[, 7:ncol(data)] <- lapply(data[, 7:ncol(data)], function(x) {
     suppressWarnings(as.numeric(x)) #convert to numeric and replace non-numeric values with NA
   })
+  
+  #remove columns with dame values 
+  data <- data[, sapply(data, function(col) lenght(unique(na.omit(col))) > 1)]
+  return(data)
+}
+
+convert_columns_to_numeric <- function(data) {
+  # Convert columns from 7th onwards to numeric
+  data[, 7:ncol(data)] <- lapply(data[, 7:ncol(data)], function(x) {
+    suppressWarnings(as.numeric(x)) # Convert to numeric and replace non-numeric values with NA
+  })
+  
+  # Remove columns where all values are the same (including all NA)
+  data <- data[, sapply(data, function(col) length(unique(na.omit(col))) > 1)]
+  
   return(data)
 }
 
 #apply function to convert to numeric
-BAS_data_final <- convert_columns_to_numeric(BAS_data_final)
-FAO_data_final <- convert_columns_to_numeric(FAO_data_final)
+BAS_data_final <- convert_columns_to_numeric(BAS_data_extended)
+FAO_data_final <- convert_columns_to_numeric(FAO_data_extended)
 
 #save to csv file 
 write_csv(BAS_data_final, "/Users/marcinebessire/Desktop/project/BAS_data.csv")
