@@ -338,3 +338,66 @@ signif_QRILC_20pct_wilcox <- significance(wilcox_QRILC_20pct) #0/34
 signif_QRILC_25pct_wilcox <- significance(wilcox_QRILC_25pct) #0/34
 signif_QRILC_40pct_wilcox <- significance(wilcox_QRILC_40pct) #0/34
 
+# ------------------------------------
+# Part 3: NRMSE
+# ------------------------------------
+
+#function to calculate NRMSE
+calculate_nrmse <- function(original, imputed) {
+  #take numeric columns 
+  numeric_col_names <- names(original)[6:ncol(original)]
+  
+  #calcualte for each column nrmse
+  nrmse_values <- sapply(numeric_col_names, function(col){
+    actual_val <- original[[col]]
+    predicted_val <- imputed[[col]]
+    
+    #ensure no missing values for comparison
+    valid_indices <- !is.na(actual_val) & !is.na(predicted_val)
+    
+    if (sum(valid_indices) > 2) {  #if enouhg datapoints
+      mse <- mean((actual_val[valid_indices] - predicted_val[valid_indices])^2) #mean squared error
+      rmse <- sqrt(mse) #root mean squared error
+      norm_factor <- max(actual_val, na.rm = TRUE) - min(actual_val, na.rm = TRUE) #denominator 
+      
+      if (norm_factor > 0) {
+        return(rmse/norm_factor) #NRMSE
+      } else {
+        return(NA) #avoid dividing by 0
+      }
+    } else {
+      return(NA)  #return NA else (if not > 2)
+    }
+  })
+
+  return(data.frame(Variable = numeric_col_names, NRMSE = nrmse_values))
+  
+}
+
+#call function to compute NRMSE
+#Halfmin
+nrmse_res_halfmin_5pct <- calculate_nrmse(FAO_original, Halfmin_5pct)
+nrmse_res_halfmin_10pct <- calculate_nrmse(FAO_original, Halfmin_10pct)
+nrmse_res_halfmin_20pct <- calculate_nrmse(FAO_original, Halfmin_20pct)
+nrmse_res_halfmin_25pct <- calculate_nrmse(FAO_original, Halfmin_25pct)
+nrmse_res_halfmin_40pct <- calculate_nrmse(FAO_original, Halfmin_40pct)
+#KNN
+nrmse_res_KNN_5pct <- calculate_nrmse(FAO_original, KNN_5pct)
+nrmse_res_KNN_10pct <- calculate_nrmse(FAO_original, KNN_10pct)
+nrmse_res_KNN_20pct <- calculate_nrmse(FAO_original, KNN_20pct)
+nrmse_res_KNN_25pct <- calculate_nrmse(FAO_original, KNN_25pct)
+nrmse_res_KNN_40pct <- calculate_nrmse(FAO_original, KNN_40pct)
+#RF
+nrmse_res_RF_5pct <- calculate_nrmse(FAO_original, RF_5pct)
+nrmse_res_RF_10pct <- calculate_nrmse(FAO_original, RF_10pct)
+nrmse_res_RF_20pct <- calculate_nrmse(FAO_original, RF_20pct)
+nrmse_res_RF_25pct <- calculate_nrmse(FAO_original, RF_25pct)
+nrmse_res_RF_40pct <- calculate_nrmse(FAO_original, RF_40pct)
+#QRILC
+nrmse_res_QRILC_5pct <- calculate_nrmse(FAO_original, QRILC_5pct)
+nrmse_res_QRILC_10pct <- calculate_nrmse(FAO_original, QRILC_10pct)
+nrmse_res_QRILC_20pct <- calculate_nrmse(FAO_original, QRILC_20pct)
+nrmse_res_QRILC_25pct <- calculate_nrmse(FAO_original, QRILC_25pct)
+nrmse_res_QRILC_40pct <- calculate_nrmse(FAO_original, QRILC_40pct)
+
+
