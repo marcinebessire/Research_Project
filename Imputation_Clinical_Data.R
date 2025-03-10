@@ -88,7 +88,7 @@ KNN_30pct <- KNN_imputation(FAO_30pct)
 KNN_40pct <- KNN_imputation(FAO_40pct)
 
 # ------------------------------------
-# Part 1.: RF Imputation
+# Part 1.3: RF Imputation
 # ------------------------------------
 
 #make function for RF
@@ -282,7 +282,13 @@ wilcox_QRILC_25pct <- wilcoxon_func(FAO_original, QRILC_25pct)
 wilcox_QRILC_40pct <- wilcoxon_func(FAO_original, QRILC_40pct) 
 
 # ------------------------------------
-# Part 2.3: Check Signficance of Tests
+# Part 2.3: Wilcoxon rank-sum Test (Visit 1 vs 2)
+# ------------------------------------
+
+
+
+# ------------------------------------
+# Part 2.4: Check Signficance of Tests
 # ------------------------------------
 
 #check for significance (p value < 0.05) 
@@ -399,5 +405,14 @@ nrmse_res_QRILC_10pct <- calculate_nrmse(FAO_original, QRILC_10pct)
 nrmse_res_QRILC_20pct <- calculate_nrmse(FAO_original, QRILC_20pct)
 nrmse_res_QRILC_25pct <- calculate_nrmse(FAO_original, QRILC_25pct)
 nrmse_res_QRILC_40pct <- calculate_nrmse(FAO_original, QRILC_40pct)
+
+# ------------------------------------
+# Part 3.1: NRMSE Plot 
+# ------------------------------------
+
+
+
+
+
 
 
