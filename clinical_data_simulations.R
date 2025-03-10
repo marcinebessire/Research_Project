@@ -3,6 +3,7 @@ library(dplyr)
 library(tidyverse)
 library(ggplot2)
 library(tidyr)
+library(impute) #for knn
 
 #load FAO data
 FAO_data <- read.csv("/Users/marcinebessire/Desktop/project/FAO_data.csv", check.names = FALSE)
@@ -15,7 +16,7 @@ FAO_data <- read.csv("/Users/marcinebessire/Desktop/project/FAO_data.csv", check
 #plot original distribution as density plots
 plot_original_distribution <- function(data) {
   #select numeric columns
-  numeric_data <- data[, 7:ncol(data)]
+  numeric_data <- data[, 6:ncol(data)]
   
   #convert data to long format for ggplot
   long_data <- pivot_longer(numeric_data, cols = everything(), names_to = "Variable", values_to = "Metabolites")
@@ -43,7 +44,7 @@ MCAR_manipulation <- function(data, missing_percentage){
   data_copy <- data
   
   #iterate through each column
-  for (col in 7:ncol(data_copy)) {
+  for (col in 6:ncol(data_copy)) {
     #calculate number of missing value per column
     num_mv <- round(nrow(data_copy) * missing_percentage)
     

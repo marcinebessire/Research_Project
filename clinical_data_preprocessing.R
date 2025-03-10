@@ -106,7 +106,7 @@ convert_columns_to_numeric <- function(data) {
 }
 
 convert_columns_to_numeric <- function(data) {
-  # Convert columns from 7th onwards to numeric
+  #convert columns from 7th onwards to numeric
   data[, 7:ncol(data)] <- lapply(data[, 7:ncol(data)], function(x) {
     suppressWarnings(as.numeric(x)) # Convert to numeric and replace non-numeric values with NA
   })
@@ -124,6 +124,7 @@ FAO_data_final <- convert_columns_to_numeric(FAO_data_extended)
 #save to csv file 
 write_csv(BAS_data_final, "/Users/marcinebessire/Desktop/project/BAS_data.csv")
 write_csv(FAO_data_final, "/Users/marcinebessire/Desktop/project/FAO_data.csv")
+
 
 #--------------------------------------------
 # Part 2: Clean dataset for Sheet 4
