@@ -3,6 +3,7 @@ library(readxl)
 library(stringr)
 library(dplyr)
 library(lubridate) #to handle dates better
+library(tidyverse)
 
 #load excel sheet with data 
 whole_data <- "/Users/marcinebessire/Desktop/project/clinical_data.xlsx"
@@ -14,6 +15,11 @@ BAS_data <- read_excel(whole_data, sheet = 2, .name_repair = "minimal")
 FAO_data <- read_excel(whole_data, sheet = 3, .name_repair = "minimal")
 #intact lipids data
 intact_lipids_data <- read_excel(whole_data, sheet = 4, .name_repair = "minimal")
+
+#--------------------------------------------
+# Part 1: Clean dataset for Sheet 2 and 3 
+# -------------------------------------------
+
 
 #function for first step of cleaning data (remove column and make column names etc)
 clean_data <- function(data){
@@ -100,4 +106,10 @@ convert_columns_to_numeric <- function(data) {
 BAS_data_final <- convert_columns_to_numeric(BAS_data_final)
 FAO_data_final <- convert_columns_to_numeric(FAO_data_final)
 
+#save to csv file 
+write_csv(BAS_data_final, "/Users/marcinebessire/Desktop/project/BAS_data.csv")
+write_csv(FAO_data_final, "/Users/marcinebessire/Desktop/project/FAO_data.csv")
 
+#--------------------------------------------
+# Part 2: Clean dataset for Sheet 4
+# -------------------------------------------
