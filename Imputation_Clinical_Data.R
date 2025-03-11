@@ -770,75 +770,48 @@ norm_diff_QRILC_40pct <- norm_mean_diff(FAO_original, QRILC_40pct, "QRILC", 40)
 
 
 # ------------------------------------
-# Part 5: Plot Distirbution
+# Part 5: Plot Distribution
 # ------------------------------------
 
-#function to plot the distirbution before and after imputation
-distirbution_plot <- function(original, imputed, method, percentage){
-  #numeric columns
-  original_numeric <- original[, 6:ncol(original)]
-  imputed_numeric <- imputed[, 6:ncol(imputed)]
+#function to plot the distribution before and after imputation and only imputed values 
+plot_distribution <- function(original, imputed, method, percentage) {
+  #numeric columns 
+  numeric_original <- original[, 6:ncol(original)]
+  numeric_imputed <- imputed[, 6:ncol(imputed)]
   
-  #convert data to long format for visualization
-  imputed_long <- imputed_numeric %>%
-    pivot_longer(cols = everything(), names_to = "Metabolite", values_to = "Imputed_Data")
+  #convert to logn format for plotting
+  original_long <- numeric_original %>%
+    pivot_longer(cols = everything(), names_to = "Metabolite", values_to = "Value") %>%
+    mutate(Data = "Original")
   
-  original_long <- original_numeric %>%
-    pivot_longer(cols = everything(), names_to = "Metabolite", values_to = "Original_Data")
+  imputed_long <- numeric_imputed %>%
+    pivot_longer(cols = everything(), names_to = "Metabolite", values_to = "Value") %>%
+    mutate(Data = "Imputed")
   
-  #identify imputed values => missing values were replaced by half of the minimum observed value.
-  imputed_only <- original_long %>%
-    inner_join(imputed_long, by = "Metabolite") %>%
-    filter(Original_Data != Imputed_Data) %>%
-    mutate(Dataset = "Imputed_Values")
+  #combine data
+  combined_data <- bind_rows(original_long, imputed_long)
   
-  #merge original and imputed datasets
-  comparison <- original_long %>%
-    left_join(imputed_long %>%
-                distinct(Metabolite, .keep_all = TRUE), by = "Metabolite") %>%
-    pivot_longer(cols = c("Original_Data", "Imputed_Data"), 
-                 names_to = "Dataset", values_to = "Value")
-  
-  #add Imputed_Only as a separate dataset
-  imputed_only <- imputed_only %>%
-    mutate(Value = Imputed_Data, Dataset = "Imputed_Values") %>%
-    select(Metabolite, Dataset, Value)
-  
-  #combine both datasets
-  comparison <- bind_rows(comparison, imputed_only)
-  
-  #title 
-  plot_title <- paste0("Distirbution of Original Data and Data with ", percentage, "% Missing Values using ", method, " Imputation")
-
   #plot 
-  plot <- ggplot(comparison, aes(x = Value, fill = Dataset)) +
-    geom_density(alpha = 0.5) +  #transparency for overlapping
-    labs(title = plot_title,
-         x = "Metabolite Value",
-         y = "Density") +
-    theme_minimal() + 
-    scale_fill_manual(values = c("Original_Data" = "lightblue", 
-                                 "Imputed_Data" = "red", 
-                                 "Imputed_Values" = "lightyellow")) +
-    xlim(-100,500)
+  plot <- ggplot(combined_data, aes(x = Value, fill = Data)) +
+    geom_density(alpha = 0.5) + #transparency
+    facet_wrap(~ Metabolite, scales = "free") +
+    theme_minimal() +
+    labs(title = paste0("Density Distribution Before and After Imputation (", method, ", ", percentage, "% Missing)"),
+         x = "Value",
+         y = "Density")
+  
+  print(plot)
+  return(combined_data)
     
-    print(plot)
-    return(comparison)
-} 
+}
 
-#call function for Distirbution plot
+#call function to plot distirbution
 #Halfmin
-dist_Halfmin_5pct <- distirbution_plot(FAO_original, Halfmin_5pct, "Half-min", 5)
-dist_Halfmin_40pct <- distirbution_plot(FAO_original, Halfmin_40pct, "Half-min", 40)
+dist_Halfmin_5pct <- plot_distribution(FAO_original, Halfmin_5pct, "Half-min", 5)
+dist_Halfmin_40pct <- plot_distribution(FAO_original, Halfmin_40pct, "Half-min", 40)
 #KNN
-dist_KNN_5pct <- distirbution_plot(FAO_original, KNN_5pct, "KNN", 5)
-dist_KNN_40pct <- distirbution_plot(FAO_original, KNN_40pct, "KNN", 40)
-#RF
-dist_RF_5pct <- distirbution_plot(FAO_original, RF_5pct, "RF", 5)
-dist_RF_40pct <- distirbution_plot(FAO_original, RF_40pct, "RF", 40)
-#QRILC
-dist_QRILC_5pct <- distirbution_plot(FAO_original, QRILC_5pct, "QRILC", 5)
-dist_QRILC_40pct <- distirbution_plot(FAO_original, QRILC_40pct, "QRILC", 40)
+dist_KNN_5pct <- plot_distribution(FAO_original, KNN_5pct, "KNN", 5)
+dist_KNN_40pct <- plot_distribution(FAO_original, KNN_40pct, "KNN", 40)
 
 
 

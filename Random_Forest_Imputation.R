@@ -168,12 +168,10 @@ imputed_23_long <- imputed_RF_23 %>%
 original_23_long <- numeric_23 %>%
   pivot_longer(cols = everything(), names_to = "Metabolite", values_to = "Original_Data")
 
-#identify imputed values => missing values were replaced by half of the minimum observed value.
+#identify imputed values 
 imputed_only_23 <- original_23_long %>%
-  mutate(Imputed = is.na(Original_Data)) %>%
-  filter(Imputed) %>%
-  inner_join(imputed_23_long %>%
-               distinct(Metabolite, .keep_all = TRUE), by = "Metabolite") %>%
+  inner_join(imputed_23_long, by = "Metabolite") %>%
+  filter(Original_Data != Imputed_Data) %>%
   mutate(Dataset = "Imputed_Values")
 
 
@@ -208,12 +206,10 @@ imputed_24_long <- imputed_RF_24 %>%
 original_24_long <- numeric_24 %>%
   pivot_longer(cols = everything(), names_to = "Metabolite", values_to = "Original_Data")
 
-#identify imputed values => missing values were replaced by half of the minimum observed value.
+#identify imputed values 
 imputed_only_24 <- original_24_long %>%
-  mutate(Imputed = is.na(Original_Data)) %>%
-  filter(Imputed) %>%
-  inner_join(imputed_24_long %>%
-               distinct(Metabolite, .keep_all = TRUE), by = "Metabolite") %>%
+  inner_join(imputed_24_long, by = "Metabolite") %>%
+  filter(Original_Data != Imputed_Data) %>%
   mutate(Dataset = "Imputed_Values")
 
 #merge original and imputed datasets
