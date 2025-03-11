@@ -101,21 +101,10 @@ convert_columns_to_numeric <- function(data) {
   })
   
   #remove columns with dame values 
-  data <- data[, sapply(data, function(col) lenght(unique(na.omit(col))) > 1)]
+  data <- data[, sapply(data, function(col) length(unique(na.omit(col))) > 1)]
   return(data)
 }
 
-convert_columns_to_numeric <- function(data) {
-  #convert columns from 7th onwards to numeric
-  data[, 7:ncol(data)] <- lapply(data[, 7:ncol(data)], function(x) {
-    suppressWarnings(as.numeric(x)) # Convert to numeric and replace non-numeric values with NA
-  })
-  
-  # Remove columns where all values are the same (including all NA)
-  data <- data[, sapply(data, function(col) length(unique(na.omit(col))) > 1)]
-  
-  return(data)
-}
 
 #apply function to convert to numeric
 BAS_data_final <- convert_columns_to_numeric(BAS_data_extended)

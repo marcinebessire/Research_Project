@@ -190,7 +190,7 @@ shapiro_test <- function(data){
 }
 
 #call shaprio function
-shapiro_original <- shapiro_test(FAO_original) #16/34 are significant 
+shapiro_original <- shapiro_test(FAO_original) #16/34 are significant (16 non-normal)
 
 
 # ------------------------------------
@@ -360,52 +360,39 @@ wilcox_QRILC_40pct <- wilcoxon_func(FAO_original, QRILC_40pct)
 # Part 2.4: Wilcoxon singed-rank Test (Visit 1 vs 2)
 # ------------------------------------
 
-#function to compare significance between Visit 1 and Visit 2
+#comapte visit 1 and visit 2 for each metabolite
 compare_visits_wilcoxon <- function(data) {
-  #numeric columns
-  numeric <- data[, 6:ncol(data)]
+  #ensure numeric conversion for relevant columns (starting from column 6)
+  data[, 6:ncol(data)] <- lapply(data[, 6:ncol(data)], as.numeric)
   
-  #metabolte columns
-  metabolite_cols <- colnames(numeric)
+  #separate visits explicitly
+  visit1 <- data %>% filter(Visit == "Visit 1") %>% arrange(Participant)
+  visit2 <- data %>% filter(Visit == "Visit 2") %>% arrange(Participant)
   
-  #save resutls in dataframe
-  results <- data.frame(
-    Metabolite = metabolite_cols,
-    p_value = numeric(length(metabolite_cols)),
-    statistic = numeric(length(metabolite_cols))
-  )
+  #ensure both visits have the same participants
+  common_participants <- intersect(visit1$Participant, visit2$Participant)
+  visit1 <- visit1 %>% filter(Participant %in% common_participants)
+  visit2 <- visit2 %>% filter(Participant %in% common_participants)
   
-  for (i in seq_along(metabolite_cols)) {
-    metabolite <- metabolite_cols[i]
+  #get numeric column names
+  numeric_cols <- names(data)[6:ncol(data)]
+  
+  #apply Wilcoxon test to each numeric column
+  wilcoxon_results <- map_dfr(numeric_cols, function(col) {
+    test_result <- wilcox.test(visit1[[col]], visit2[[col]], paired = TRUE, exact = FALSE)
     
-    #select particiaptn who have both visit 1 and 2 
-    paired_data <- data %>%
-      filter(Visit %in% c("Visit 1", "Visit 2")) %>%
-      select(Participant, Visit, all_of(metabolite)) %>%
-      spread(Visit, metabolite) #same as pivot_wider 
+    tibble(
+      Metabolite = col,
+      Statistic = test_result$statistic,
+      p_value = test_result$p.value
+    )
+  })
   
-    #only compete pairs (no NA)
-    paired_data <- paired_data %>% filter(!is.na(`Visit 1`) & !is.na(`Visit 2`))
-    
-    #perform wilcoxon singed-rank test
-    if (nrow(paired_data) > 2) {
-      #use paired here because same patient
-      wilcox_test_result <- wilcox.test(paired_data$`Visit 1`, paired_data$`Visit 2`, paired = TRUE, exact = FALSE)
-      
-      #store resuls
-      results$p_value[i] <- wilcox_test_result$p.value
-      results$statistic[i] <- wilcox_test_result$statistic
-    } else {
-      #if not enough data
-      results$p_value[i] <- NA
-      results$statistic[i] <- NA
-    }
-  }
-  #adjust p-value using BH
-  results$adj_p_value <- p.adjust(results$p_value, method = "BH")
+  #adjust p-values using Benjamini-Hochberg
+  wilcoxon_results <- wilcoxon_results %>%
+    mutate(adj_p_value = p.adjust(p_value, method = "BH"))
   
-  return(results)
-  
+  return(wilcoxon_results)
 }
 
 #call function to compare Visit 1 vs. Visit 2
@@ -414,9 +401,9 @@ visit_original_res <- compare_visits_wilcoxon(FAO_original)
 visit_origininal_signif <- significance(visit_original_res) #16/34 significant
 #Halfmin
 visit_Halfmin5pct_res <- compare_visits_wilcoxon(Halfmin_5pct)
-visit_Halfmin5pct_signif <- significance(visit_Halfmin5pct_res) #13
+visit_Halfmin5pct_signif <- significance(visit_Halfmin5pct_res) #11
 visit_Halfmin10pct_res <- compare_visits_wilcoxon(Halfmin_10pct)
-visit_Halfmin10pct_signif <- significance(visit_Halfmin10pct_res) #0/34
+visit_Halfmin10pct_signif <- significance(visit_Halfmin10pct_res) #8/34
 visit_Halfmin20pct_res <- compare_visits_wilcoxon(Halfmin_20pct)
 visit_Halfmin20pct_signif <- significance(visit_Halfmin20pct_res) #0/34
 visit_Halfmin25pct_res <- compare_visits_wilcoxon(Halfmin_25pct)
@@ -429,13 +416,13 @@ visit_Halfmin40pct_signif <- significance(visit_Halfmin40pct_res) #0/34
 visit_KNN5pct_res <- compare_visits_wilcoxon(KNN_5pct)
 visit_KNN5pct_signif <- significance(visit_KNN5pct_res) #14/34
 visit_KNN10pct_res <- compare_visits_wilcoxon(KNN_10pct)
-visit_KNN10pct_signif <- significance(visit_KNN10pct_res) #14/34
+visit_KNN10pct_signif <- significance(visit_KNN10pct_res) #11/34
 visit_KNN20pct_res <- compare_visits_wilcoxon(KNN_20pct)
-visit_KNN20pct_signif <- significance(visit_KNN20pct_res) #10/34
+visit_KNN20pct_signif <- significance(visit_KNN20pct_res) #0/34
 visit_KNN25pct_res <- compare_visits_wilcoxon(KNN_25pct)
 visit_KNN25pct_signif <- significance(visit_KNN25pct_res) #6/34
 visit_KNN30pct_res <- compare_visits_wilcoxon(KNN_30pct)
-visit_KNN30pct_signif <- significance(visit_KNN30pct_res) #8/34
+visit_KNN30pct_signif <- significance(visit_KNN30pct_res) #6/34
 visit_KNN40pct_res <- compare_visits_wilcoxon(KNN_40pct)
 visit_KNN40pct_signif <- significance(visit_KNN40pct_res) #0/34
 #RF
@@ -450,10 +437,10 @@ visit_RF25pct_signif <- significance(visit_RF25pct_res) #15/34
 visit_RF30pct_res <- compare_visits_wilcoxon(RF_30pct)
 visit_RF30pct_signif <- significance(visit_RF30pct_res) #16/34
 visit_RF40pct_res <- compare_visits_wilcoxon(RF_40pct)
-visit_RF40pct_signif <- significance(visit_RF40pct_res) #18/34
+visit_RF40pct_signif <- significance(visit_RF40pct_res) #17/34
 #QRILC
 visit_QRILC5pct_res <- compare_visits_wilcoxon(QRILC_5pct)
-visit_QRILC5pct_signif <- significance(visit_QRILC5pct_res) #16/34
+visit_QRILC5pct_signif <- significance(visit_QRILC5pct_res) #14/34
 visit_QRILC10pct_res <- compare_visits_wilcoxon(QRILC_10pct)
 visit_QRILC10pct_signif <- significance(visit_QRILC10pct_res) #0/34
 visit_QRILC20pct_res <- compare_visits_wilcoxon(QRILC_20pct)
@@ -511,6 +498,7 @@ significance <- function(data) {
     filter(adj_p_value < 0.05) %>% #usually 0.05 used 
     arrange(adj_p_value)
   
+  print(paste0("Nr. of significant Metabolites: ", nrow(data_significant)))
   return(data_significant)
 }
 
@@ -812,6 +800,62 @@ dist_Halfmin_40pct <- plot_distribution(FAO_original, Halfmin_40pct, "Half-min",
 #KNN
 dist_KNN_5pct <- plot_distribution(FAO_original, KNN_5pct, "KNN", 5)
 dist_KNN_40pct <- plot_distribution(FAO_original, KNN_40pct, "KNN", 40)
+#RF
+dist_RF_5pct <- plot_distribution(FAO_original, RF_5pct, "RF", 5)
+dist_RF_40pct <- plot_distribution(FAO_original, RF_40pct, "RF", 40)
+#QRILC
+dist_QRILC_5pct <- plot_distribution(FAO_original, QRILC_5pct, "QRILC", 5)
+dist_QRILC_40pct <- plot_distribution(FAO_original, QRILC_40pct, "QRILC", 40)
+
+# ------------------------------------
+# Part 5.1: Distribution Plot (Whole Dataset)
+# ------------------------------------
+
+#function to plot distribution before and after imputation (entire dataset)
+plot_whole_distribution <- function(original, imputed, method, percentage) {
+  #numeric columns 
+  numeric_original <- original[, 6:ncol(original)]
+  numeric_imputed <- imputed[, 6:ncol(imputed)]
+  
+  #convert to long format for plotting
+  original_long <- numeric_original %>%
+    pivot_longer(cols = everything(), names_to = "Metabolite", values_to = "Value") %>%
+    mutate(Data = "Original")
+  
+  imputed_long <- numeric_imputed %>%
+    pivot_longer(cols = everything(), names_to = "Metabolite", values_to = "Value") %>%
+    mutate(Data = "Imputed")
+  
+  #combine both data
+  combined_data <- bind_rows(original_long, imputed_long)
+  
+  #plot overall density distribution
+  plot <- ggplot(combined_data, aes(x = Value, fill = Data)) +
+    geom_density(alpha = 0.5) + # Transparency for overlap
+    theme_minimal() +
+    labs(title = paste0("Overall Density Distribution Before and After Imputation (", method, ", ", percentage, "% Missing)"),
+         x = "Value",
+         y = "Density") +
+    xlim(-100,500)
+  
+  print(plot)
+  return(combined_data)
+}
+
+#call function to plot whole distirbution
+#Halfmin
+whole_dist_Halfmin_5pct <- plot_whole_distribution(FAO_original, Halfmin_5pct, "Half-min", 5)
+whole_dist_Halfmin_40pct <- plot_whole_distribution(FAO_original, Halfmin_40pct, "Half-min", 40)
+#KNN
+whole_dist_KNN_5pct <- plot_whole_distribution(FAO_original, KNN_5pct, "KNN", 5)
+whole_dist_KNN_40pct <- plot_whole_distribution(FAO_original, KNN_40pct, "KNN", 40)
+#RF
+whole_dist_RF_5pct <- plot_whole_distribution(FAO_original, RF_5pct, "RF", 5)
+whole_dist_RF_40pct <- plot_whole_distribution(FAO_original, RF_40pct, "RF", 40)
+#QRILC
+whole_dist_QRILC_5pct <- plot_whole_distribution(FAO_original, QRILC_5pct, "QRILC", 5)
+whole_dist_QRILC_40pct <- plot_whole_distribution(FAO_original, QRILC_40pct, "QRILC", 40)
+
 
 
 
