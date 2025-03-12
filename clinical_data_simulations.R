@@ -21,13 +21,27 @@ plot_original_distribution <- function(data) {
   #convert data to long format for ggplot
   long_data <- pivot_longer(numeric_data, cols = everything(), names_to = "Variable", values_to = "Metabolites")
   
+  #compute mean and median for each variable 
+  stats <- long_data %>%
+    group_by(Variable) %>%
+    summarize(
+      Mean = mean(Metabolites, na.rm = TRUE), #mean
+      Median = median(Metabolites, na.rm = TRUE) #median
+    )
+  
   #plot density plots
   ggplot(long_data, aes(x = Metabolites)) +
-    geom_density(fill = "lightblue", alpha = 0.7) +  
+    geom_density(fill = "lightblue", alpha = 0.7, color = "blue") +  
+    geom_vline(data = stats, aes(xintercept = Mean, color = "Mean"), linetype = "dashed", linewidth = 0.5) +
+    geom_vline(data = stats, aes(xintercept = Median, color = "Median"), linetype = "solid", linewidth = 0.5) +
     facet_wrap(~Variable, scales = "free") +  #plot for each variable
     theme_minimal() +
     labs(title = "Original Data Distribution (Density Plots)", x = "Metabolites", y = "Density") +
-    theme(strip.text = element_text(size = 10, face = "bold"))
+    scale_color_manual(values = c("Mean"= "red", "Median" = "darkgreen"), name = "Statistics") +
+    theme(
+      strip.text = element_text(size = 10, face = "bold"), 
+      legend.position = "bottom"
+    )
 }
 
 
@@ -36,7 +50,7 @@ plot_original_distribution(FAO_data)
 
 
 # ---------------------------------
-# Part 2: Generate MCAR in dataset
+# Part 2: Generate MCAR in data set
 # MCAR because randomly assign MV to each column without any dependency on the observed or unobserved data
 # ---------------------------------
 MCAR_manipulation <- function(data, missing_percentage){
