@@ -6,6 +6,8 @@ library(tidyr)
 library(missForest)
 library(imputeLCMD)
 library(reshape2) #for melt
+library(FSA) #for Dunns test
+
 
 #load original data
 FAO_original <- read.csv("/Users/marcinebessire/Desktop/project/FAO_data.csv", check.names = FALSE)
@@ -792,7 +794,98 @@ whole_dist_RF_40pct <- plot_whole_distribution(FAO_original, RF_40pct, "RF", 40)
 whole_dist_QRILC_5pct <- plot_whole_distribution(FAO_original, QRILC_5pct, "QRILC", 5)
 whole_dist_QRILC_40pct <- plot_whole_distribution(FAO_original, QRILC_40pct, "QRILC", 40)
 
+# ------------------------------------
+# Part 6: ANOVA
+# ------------------------------------
 
+#fit an ANOVA model with an interaction term between imputation method and missingness level 
+#apply log to normalize data
+anova_model_mcar <- aov(log(Weighted_NRMSE) ~ Imputation_Method * MCAR_Proportion, data = nrmse_data)
 
+#show ANOVA summary
+summary(anova_model_mcar)
+
+# For Imputation_Method
+# --------
+#3 df (degree of freedom) means 4 imputation method - 1 
+#Sum Sq = 201.8 (variation explained by impuation method)
+#Mean Sq = 67.26 (variation per degree of freedom)
+#F-value = 89.048 (string effect if high value)
+#P-value highly significant < 2e-16
+#Significant effect of imputation method on NRMSE
+
+# For MCAR_Proportion
+# --------
+#5 df (degree of freedom) means 6 levels of missing data 
+#Sum Sq = 1159.5 (variation explained by impuation method)
+#Mean Sq = 231.90 (variation per degree of freedom)
+#F-value = 307.036 (strong effect, very high value)
+#P-value highly significant < 2e-16
+#Proportion of missing data has a strong signficnant effect on NRMSE
+
+# For interaction of both
+# -------
+#P-value is 1, so no signification i.e. there is no interaction effect meaning that the effect of imputation methond on NRMSE does not depend on the missingness level 
+#The effect of imputation method is consistens across different missingness levels
+
+# --------------------------------------------------------
+# Part 6.1: Check Residuals and Normality for ANOVA result
+# -------------------------------------------------------
+
+#check residuals for normality
+#histogram of residuals (extracts results from anova model)
+#residul look symmetry and a bit bell shaped then it suggests normalizy 
+ggplot(data.frame(residuals = residuals(anova_model_mcar)), aes(x = residuals)) +
+  geom_histogram(binwidth = 0.05, fill = "blue", alpha = 0.7) +
+  labs(title = "Histogram of Residuals", x = "Residuals", y = "Frequency") +
+  theme_minimal()
+
+#Q-Q plot of residuals
+#plot residula against theoretical normal distirbutions
+#red line shows perfect normal distirbution
+#S-shaped pattern = possibles skewness
+qqnorm(residuals(anova_model_mcar), col = "blue")
+qqline(residuals(anova_model_mcar), col = "red")
+
+#Tukey-Anscombe plot to check residuals vs fitted values
+#x-axis = fitted values (predicted) and y-axis = residueals (error)
+#residuals should be evenly spread, if the points fan out or forma pattern the assumption of homoscedascity is violated 
+plot(fitted(anova_model_mcar), resid(anova_model_mcar), 
+     main = "Tukey-Anscombe Plot", 
+     col = "blue", 
+     xlab = "Fitted Values (Predicted by ANOVA Model)", 
+     ylab = "Residuals (Errors)")
+
+# ------------------------------------
+# Part 7: Kruskal-Wallis
+# ------------------------------------
+
+#perform kruskal-wallis test
+kruskal_test <- kruskal.test(Weighted_NRMSE ~ Imputation_Method, data = nrmse_data)
+
+#show results
+print(kruskal_test) 
+#p-value storngly signficant 
+#chi-square = 98.713 (higher value means larger difference between groups)
+#at least one imputation method significantly differs from the others in terms of NRMSE
+
+# ------------------------------------
+# Part 8: Dunn's Test
+# ------------------------------------
+
+#perform Dunn's Test for pairwise comparison (BH correction for multiple testing)
+dunn_test <- dunnTest(Weighted_NRMSE ~ Imputation_Method, data = nrmse_data, method = "bh")
+
+#print the results
+print(dunn_test)
+
+#plot Dunns test results
+ggplot(nrmse_data, aes(x = Imputation_Method, y = Weighted_NRMSE, fill = Imputation_Method)) +
+  geom_boxplot() +
+  theme_minimal() +
+  labs(title = "Pairwise Comparisons of Imputation Methods (Dunn's Test)",
+       x = "Imputation Method",
+       y = "Weighted NRMSE") +
+  ylim(0,1)
 
 
