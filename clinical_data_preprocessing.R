@@ -17,9 +17,8 @@ FAO_data <- read_excel(whole_data, sheet = 3, .name_repair = "minimal")
 intact_lipids_data <- read_excel(whole_data, sheet = 4, .name_repair = "minimal")
 
 #--------------------------------------------
-# Part 1: Clean dataset for Sheet 2 and 3 
+# Part 1: Clean data set for Sheet 2 and 3 
 # -------------------------------------------
-
 
 #function for first step of cleaning data (remove column and make column names etc)
 clean_data <- function(data){
@@ -74,14 +73,14 @@ make_new_columns <- function(data){
       Day = str_sub(Date,1,2), #extract first two digits for day
       Month = str_sub(Date,3,4), #extract next two digits for month
       Year = paste0("20", str_sub(Date,5,6)), #extract year in format e.g. 2020
-      MonthDaycalc = paste0(Month, Day), #create MonthDay column for ordering properly
-      MonthDay = paste0(Month, "/", Day) #format for visualization
+      Full_Date = as.Date(paste0(Year, "-", Month, "-", Day), format = "%Y-%m-%d"),
+      MonthDay = format(Full_Date, "%m/%d") #format for visualization
     ) %>%
     mutate(
-      MonthDaycalc = as.numeric(MonthDaycalc), #convert to numeric for ordering
+      MonthDaycalc = as.numeric(format(Full_Date, "%m%d")), #numeric sorting
       Participant_Number = as.numeric(str_extract(Participant, "[0-9]+")) #extract numeric part of Participant for sorting
     ) %>%
-    arrange(Participant_Number, MonthDaycalc) %>% #sort by date and participant
+    arrange(Participant_Number, Full_Date) %>% #sort by date and participant
     group_by(Participant) %>%
     mutate(Visit = ifelse(row_number() == 1, "Visit 1", "Visit 2")) %>% #assign visit depending on date  %>%
     select(ID,Participant, MonthDay, Year, Time, Visit, everything()) %>%
