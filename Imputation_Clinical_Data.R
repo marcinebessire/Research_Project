@@ -5,6 +5,7 @@ library(ggplot2)
 library(tidyr)
 library(missForest)
 library(imputeLCMD)
+library(reshape2) #for melt
 
 #load original data
 FAO_original <- read.csv("/Users/marcinebessire/Desktop/project/FAO_data.csv", check.names = FALSE)
@@ -16,6 +17,26 @@ FAO_20pct <- read.csv("/Users/marcinebessire/Desktop/project/FAO_20pct.csv", che
 FAO_25pct <- read.csv("/Users/marcinebessire/Desktop/project/FAO_25pct.csv", check.names = FALSE)
 FAO_30pct <- read.csv("/Users/marcinebessire/Desktop/project/FAO_30pct.csv", check.names = FALSE)
 FAO_40pct <- read.csv("/Users/marcinebessire/Desktop/project/FAO_40pct.csv", check.names = FALSE)
+
+
+# ------------------------------------
+# Part 0: Visit 1 vs Visit 2 Plot 
+# ------------------------------------
+
+#reshape data into long format (use melt to convert dataframe from wide into logn format)
+FAO_long <- melt(FAO_original, id.vars = c("ID", "Participant", "MonthDay", "Year", "Visit"),
+                 variable.name = "Metabolite", value.name = "Value")
+
+#generate boxplot for each metabolite 
+ggplot(FAO_long, aes(x = Visit, y = Value, fill = Visit)) +
+  geom_boxplot() +
+  facet_wrap(~Metabolite, scales = "free") +
+  theme_minimal() +
+  labs(title = "Comparison of Metabolites Between Visits", 
+       x = "Visit",
+       y = "Metabolite Measurement") +
+  theme(legend.position = "none",
+        axis.text.x = element_text(angle = 45, hjust = 1))
 
 
 # ------------------------------------
@@ -33,16 +54,17 @@ half_min_imputation <- function(data){
 
   #metadata
   meta_data <- data_imputed[, 1:5]
+  
   #select only numeric data
-  numeric <- data_imputed[, 6:ncol(data_imputed)]
+  numeric_data <- data_imputed[, 6:ncol(data_imputed)]
   
   #loop through column
-  for (col in names(numeric)) { 
-    min_val <- min(numeric[[col]], na.rm = TRUE) #find min value 
-    numeric[[col]][is.na(numeric[[col]])] <- 0.5 * min_val #calculate half min and replace NA
+  for (col in names(numeric_data)) { 
+    min_val <- min(numeric_data[[col]], na.rm = TRUE) #find min value 
+    numeric_data[[col]][is.na(numeric_data[[col]])] <- 0.5 * min_val #calculate half min and replace NA
   }
   
-  final_df <- cbind(meta_data, numeric)
+  final_df <- cbind(meta_data, numeric_data)
   
   return(final_df)
 }
@@ -64,13 +86,13 @@ KNN_imputation <- function(data) {
   data_imputed <- data
   
   #select only numeric data
-  numeric <- data_imputed[, 6:ncol(data_imputed)]
+  numeric_data <- data_imputed[, 6:ncol(data_imputed)]
   
   #metadata
   meta_data <- data_imputed[, 1:5]
   
   #transform first into matrix
-  imputed_data <- impute.knn(as.matrix(t(numeric)), rowmax = 0.5, colmax = 1) 
+  imputed_data <- impute.knn(as.matrix(t(numeric_data)), rowmax = 0.5, colmax = 1) 
   
   #transform back into dataframe
   imputed_data <- as.data.frame(t(imputed_data$data))
@@ -98,13 +120,13 @@ RF_imputation <- function(data) {
   data_copy <- data 
 
   #select only numeric data
-  numeric <- data_copy[, 6:ncol(data_copy)]
+  numeric_data <- data_copy[, 6:ncol(data_copy)]
   
   #metadata
   meta_data <- data_copy[, 1:5]
   
   #apply miss forest on data to impute MV
-  imputed_data <- missForest(numeric, maxiter = 10, ntree = 100)
+  imputed_data <- missForest(numeric_data, maxiter = 10, ntree = 100)
   imputed_df <- as.data.frame(imputed_data$ximp)
   
   #return final dataframe
@@ -129,13 +151,13 @@ QRILC_impuation <- function(data) {
   data_copy <- data
   
   #select only numeric data
-  numeric <- data_copy[, 6:ncol(data_copy)]
+  numeric_data <- data_copy[, 6:ncol(data_copy)]
   
   #metadata
   meta_data <- data_copy[, 1:5]
   
   #transfer to log data
-  log_data <- log(numeric + 1e-6)  #add small constant to avoid log(0)
+  log_data <- log(numeric_data + 1e-6)  #add small constant to avoid log(0)
 
   #make imputation
   imputed_data <- impute.QRILC(log_data)[[1]] #returns list, extract imputed matrix
@@ -173,25 +195,32 @@ shapiro_test <- function(data){
   data_copy <- data
   
   #select only numeric data
-  numeric <- data_copy[, 6:ncol(data_copy)]
+  numeric_data <- data_copy[, 6:ncol(data_copy)]
   
   #do shapiro test
-  shapiro_results <- apply(numeric, 2, function(x) shapiro.test(x)$p.value)
+  shapiro_results <- apply(numeric_data, 2, function(x) shapiro.test(x)$p.value)
   
   #concert to dataframe
   shapiro_df <- data.frame(Metabolite = names(shapiro_results), p_value = shapiro_results) 
   
   #print how many are significant = if p-value < 0.05 then not normal distribution
-  significant_count <- sum(shapiro_df$p_value < 0.05)
+  significant_count <- sum(shapiro_df$p_value < 0.05, na.rm = TRUE)
+  cat("\n-------------------------------\n")
   cat("Number of non-normally distributed metabolites:", significant_count, "\n")
+  cat("-------------------------------\n")
+  
   
   #return dataframe
   return(shapiro_df)
 }
 
-#call shaprio function
-shapiro_original <- shapiro_test(FAO_original) #16/34 are significant (16 non-normal)
-
+#call shapiro function
+#original
+shapiro_original <- shapiro_test(FAO_original) #16/34 are significant
+shapiro_KNN5 <- shapiro_test(KNN_5pct) #19 are significant
+shapiro_Halfmin5 <- shapiro_test(Halfmin_5pct) #10 are significant 
+shaprio_RF5 <- shapiro_test(RF_5pct) #16 are significant 
+shapiro_QRILC5 <- shapiro_test(QRILC_5pct) #13 are significant
 
 # ------------------------------------
 # Part 2.2: T-test
@@ -199,10 +228,10 @@ shapiro_original <- shapiro_test(FAO_original) #16/34 are significant (16 non-no
 
 t_test_func <- function(original, imputed) {
   #numeric columns
-  numeric <- original[, 6:ncol(original)]
+  numeric_data <- original[, 6:ncol(original)]
   
   #metabolte columns
-  metabolite_cols <- colnames(numeric)
+  metabolite_cols <- colnames(numeric_data)
   
   #save resutls in dataframe
   results <- data.frame(
@@ -226,67 +255,48 @@ t_test_func <- function(original, imputed) {
   #adjust p-value
   results$adj_p_value <- p.adjust(results$p_value, method = "BH")
   
+  #count significant results
+  significant_count <- sum(results$adj_p_value < 0.05)
+  
+  # Print summary
+  cat("\n-------------------------------\n")
+  cat("Number of significantly different metabolites:", significant_count, "\n")
+  cat("-------------------------------\n")
+
+  
   return(results)
 
 }
 
 #call t-test function
 #Half-min
-t_test_half_min_5pct <- t_test_func(FAO_original, Halfmin_5pct)
-t_test_half_min_10pct <- t_test_func(FAO_original, Halfmin_10pct)
-t_test_half_min_20pct <- t_test_func(FAO_original, Halfmin_20pct)
-t_test_half_min_25pct <- t_test_func(FAO_original, Halfmin_25pct)
-t_test_half_min_30pct <- t_test_func(FAO_original, Halfmin_30pct)
-t_test_half_min_40pct <- t_test_func(FAO_original, Halfmin_40pct)
+t_test_half_min_5pct <- t_test_func(FAO_original, Halfmin_5pct) #0/34
+t_test_half_min_10pct <- t_test_func(FAO_original, Halfmin_10pct) #0/34
+t_test_half_min_20pct <- t_test_func(FAO_original, Halfmin_20pct) #0/34
+t_test_half_min_25pct <- t_test_func(FAO_original, Halfmin_25pct) #0/34
+t_test_half_min_30pct <- t_test_func(FAO_original, Halfmin_30pct) #0/34
+t_test_half_min_40pct <- t_test_func(FAO_original, Halfmin_40pct) #19/34
 #KNN
-t_test_KNN_5pct <- t_test_func(FAO_original, KNN_5pct)
-t_test_KNN_10pct <- t_test_func(FAO_original, KNN_10pct)
-t_test_KNN_20pct <- t_test_func(FAO_original, KNN_20pct)
-t_test_KNN_25pct <- t_test_func(FAO_original, KNN_25pct)
-t_test_KNN_30pct <- t_test_func(FAO_original, KNN_30pct)
-t_test_KNN_40pct <- t_test_func(FAO_original, KNN_40pct)
+t_test_KNN_5pct <- t_test_func(FAO_original, KNN_5pct) #0/34
+t_test_KNN_10pct <- t_test_func(FAO_original, KNN_10pct) #0/34
+t_test_KNN_20pct <- t_test_func(FAO_original, KNN_20pct) #0/34
+t_test_KNN_25pct <- t_test_func(FAO_original, KNN_25pct) #0/34
+t_test_KNN_30pct <- t_test_func(FAO_original, KNN_30pct) #0/34
+t_test_KNN_40pct <- t_test_func(FAO_original, KNN_40pct) #12/34
 #RF
-t_test_RF_5pct <- t_test_func(FAO_original, RF_5pct)
-t_test_RF_10pct <- t_test_func(FAO_original, RF_10pct)
-t_test_RF_20pct <- t_test_func(FAO_original, RF_20pct)
-t_test_RF_25pct <- t_test_func(FAO_original, RF_25pct)
-t_test_RF_30pct <- t_test_func(FAO_original, RF_30pct)
-t_test_RF_40pct <- t_test_func(FAO_original, RF_40pct)
+t_test_RF_5pct <- t_test_func(FAO_original, RF_5pct) #0/34
+t_test_RF_10pct <- t_test_func(FAO_original, RF_10pct) #0/34
+t_test_RF_20pct <- t_test_func(FAO_original, RF_20pct) #0/34
+t_test_RF_25pct <- t_test_func(FAO_original, RF_25pct) #0/34
+t_test_RF_30pct <- t_test_func(FAO_original, RF_30pct) #0/34
+t_test_RF_40pct <- t_test_func(FAO_original, RF_40pct) #0/34
 #QRILC
-t_test_QRILC_5pct <- t_test_func(FAO_original, QRILC_5pct)
-t_test_QRILC_10pct <- t_test_func(FAO_original, QRILC_10pct)
-t_test_QRILC_20pct <- t_test_func(FAO_original, QRILC_20pct)
-t_test_QRILC_25pct <- t_test_func(FAO_original, QRILC_25pct)
-t_test_QRILC_30pct <- t_test_func(FAO_original, QRILC_30pct)
-t_test_QRILC_40pct <- t_test_func(FAO_original, QRILC_40pct)
-
-#Store results in dataframe
-df_t_test <- bind_rows(
-  t_test_half_min_5pct %>% mutate(Method = "Halfmin", Missing = "5%"),
-  t_test_half_min_10pct %>% mutate(Method = "Halfmin", Missing = "10%"),
-  t_test_half_min_20pct %>% mutate(Method = "Halfmin", Missing = "20%"),
-  t_test_half_min_25pct %>% mutate(Method = "Halfmin", Missing = "25%"),
-  t_test_half_min_30pct %>% mutate(Method = "Halfmin", Missing = "30%"),
-  t_test_half_min_40pct %>% mutate(Method = "Halfmin", Missing = "40%"),
-  t_test_KNN_5pct %>% mutate(Method = "KNN", Missing = "5%"),
-  t_test_KNN_10pct %>% mutate(Method = "KNN", Missing = "10%"),
-  t_test_KNN_20pct %>% mutate(Method = "KNN", Missing = "20%"),
-  t_test_KNN_25pct %>% mutate(Method = "KNN", Missing = "25%"),
-  t_test_KNN_30pct %>% mutate(Method = "KNN", Missing = "30%"),
-  t_test_KNN_40pct %>% mutate(Method = "KNN", Missing = "40%"),
-  t_test_RF_5pct %>% mutate(Method = "RF", Missing = "5%"),
-  t_test_RF_10pct %>% mutate(Method = "RF", Missing = "10%"),
-  t_test_RF_20pct %>% mutate(Method = "RF", Missing = "20%"),
-  t_test_RF_25pct %>% mutate(Method = "RF", Missing = "25%"),
-  t_test_RF_30pct %>% mutate(Method = "RF", Missing = "30%"),
-  t_test_RF_40pct %>% mutate(Method = "RF", Missing = "40%"),
-  t_test_QRILC_5pct %>% mutate(Method = "QRILC", Missing = "5%"),
-  t_test_QRILC_10pct %>% mutate(Method = "QRILC", Missing = "10%"),
-  t_test_QRILC_20pct %>% mutate(Method = "QRILC", Missing = "20%"),
-  t_test_QRILC_25pct %>% mutate(Method = "QRILC", Missing = "25%"),
-  t_test_QRILC_30pct %>% mutate(Method = "QRILC", Missing = "30%"),
-  t_test_QRILC_40pct %>% mutate(Method = "QRILC", Missing = "40%")
-)
+t_test_QRILC_5pct <- t_test_func(FAO_original, QRILC_5pct) #0/34
+t_test_QRILC_10pct <- t_test_func(FAO_original, QRILC_10pct) #0/34
+t_test_QRILC_20pct <- t_test_func(FAO_original, QRILC_20pct) #0/34
+t_test_QRILC_25pct <- t_test_func(FAO_original, QRILC_25pct) #0/34
+t_test_QRILC_30pct <- t_test_func(FAO_original, QRILC_30pct) #0/34
+t_test_QRILC_40pct <- t_test_func(FAO_original, QRILC_40pct) #0/34
 
 
 # ------------------------------------
@@ -295,10 +305,10 @@ df_t_test <- bind_rows(
 
 wilcoxon_func <- function(original, imputed) {
   #numeric columns
-  numeric <- original[, 6:ncol(original)]
+  numeric_data <- original[, 6:ncol(original)]
   
   #metabolte columns
-  metabolite_cols <- colnames(numeric)
+  metabolite_cols <- colnames(numeric_data)
   
   #save resutls in dataframe
   results <- data.frame(
@@ -322,315 +332,160 @@ wilcoxon_func <- function(original, imputed) {
   #adjust p-value
   results$adj_p_value <- p.adjust(results$p_value, method = "BH")
   
+  #count significant results
+  significant_count <- sum(results$adj_p_value < 0.05)
+  
+  #print summary
+  cat("\n-------------------------------\n")
+  cat("Number of significantly different metabolites (Wilcoxon test):", significant_count, "\n")
+  cat("-------------------------------\n")
+  
+  
   return(results)
   
 }
 
 #call wilcoxon function 
 #Halfmin
-wilcox_half_min_5pct <- wilcoxon_func(FAO_original, Halfmin_5pct) 
-wilcox_half_min_10pct <- wilcoxon_func(FAO_original, Halfmin_10pct) 
-wilcox_half_min_20pct <- t_test_func(FAO_original, Halfmin_20pct)
-wilcox_half_min_25pct <- t_test_func(FAO_original, Halfmin_25pct)
-wilcox_half_min_30pct <- t_test_func(FAO_original, Halfmin_30pct)
-wilcox_half_min_40pct <- wilcoxon_func(FAO_original, Halfmin_40pct)
+wilcox_half_min_5pct <- wilcoxon_func(FAO_original, Halfmin_5pct) #0/34
+wilcox_half_min_10pct <- wilcoxon_func(FAO_original, Halfmin_10pct) #0/34
+wilcox_half_min_20pct <- t_test_func(FAO_original, Halfmin_20pct) #0/34
+wilcox_half_min_25pct <- t_test_func(FAO_original, Halfmin_25pct) #0/34
+wilcox_half_min_30pct <- t_test_func(FAO_original, Halfmin_30pct) #0/34
+wilcox_half_min_40pct <- wilcoxon_func(FAO_original, Halfmin_40pct) #20/34
 #KNN
-wilcox_KNN_5pct <- wilcoxon_func(FAO_original, KNN_5pct) 
-wilcox_KNN_10pct <- wilcoxon_func(FAO_original, KNN_10pct) 
-wilcox_KNN_20pct <- t_test_func(FAO_original, KNN_20pct)
-wilcox_KNN_25pct <- t_test_func(FAO_original, KNN_25pct)
-wilcox_KNN_30pct <- t_test_func(FAO_original, KNN_30pct)
-wilcox_KNN_40pct <- wilcoxon_func(FAO_original, KNN_40pct)
+wilcox_KNN_5pct <- wilcoxon_func(FAO_original, KNN_5pct) #0/34
+wilcox_KNN_10pct <- wilcoxon_func(FAO_original, KNN_10pct) #0/34
+wilcox_KNN_20pct <- t_test_func(FAO_original, KNN_20pct) #0/34
+wilcox_KNN_25pct <- t_test_func(FAO_original, KNN_25pct) #0/34
+wilcox_KNN_30pct <- t_test_func(FAO_original, KNN_30pct) #0/34
+wilcox_KNN_40pct <- wilcoxon_func(FAO_original, KNN_40pct) #0/34
 #RF
-wilcox_RF_5pct <- wilcoxon_func(FAO_original, RF_5pct) 
-wilcox_RF_10pct <- wilcoxon_func(FAO_original, RF_10pct) 
-wilcox_RF_20pct <- wilcoxon_func(FAO_original, RF_20pct) 
-wilcox_RF_25pct <- wilcoxon_func(FAO_original, RF_25pct) 
-wilcox_RF_30pct <- wilcoxon_func(FAO_original, RF_30pct) 
-wilcox_RF_40pct <- wilcoxon_func(FAO_original, RF_40pct) 
+wilcox_RF_5pct <- wilcoxon_func(FAO_original, RF_5pct) #0/34
+wilcox_RF_10pct <- wilcoxon_func(FAO_original, RF_10pct) #0/34
+wilcox_RF_20pct <- wilcoxon_func(FAO_original, RF_20pct) #0/34
+wilcox_RF_25pct <- wilcoxon_func(FAO_original, RF_25pct) #0/34
+wilcox_RF_30pct <- wilcoxon_func(FAO_original, RF_30pct) #0/34
+wilcox_RF_40pct <- wilcoxon_func(FAO_original, RF_40pct) #0/34
 #QRILC
-wilcox_QRILC_5pct <- wilcoxon_func(FAO_original, QRILC_5pct) 
-wilcox_QRILC_10pct <- wilcoxon_func(FAO_original, QRILC_10pct) 
-wilcox_QRILC_20pct <- wilcoxon_func(FAO_original, QRILC_20pct) 
-wilcox_QRILC_25pct <- wilcoxon_func(FAO_original, QRILC_25pct) 
-wilcox_QRILC_30pct <- wilcoxon_func(FAO_original, QRILC_30pct) 
-wilcox_QRILC_40pct <- wilcoxon_func(FAO_original, QRILC_40pct) 
+wilcox_QRILC_5pct <- wilcoxon_func(FAO_original, QRILC_5pct) #0/34
+wilcox_QRILC_10pct <- wilcoxon_func(FAO_original, QRILC_10pct) #0/34
+wilcox_QRILC_20pct <- wilcoxon_func(FAO_original, QRILC_20pct) #0/34
+wilcox_QRILC_25pct <- wilcoxon_func(FAO_original, QRILC_25pct) #0/34
+wilcox_QRILC_30pct <- wilcoxon_func(FAO_original, QRILC_30pct) #0/34
+wilcox_QRILC_40pct <- wilcoxon_func(FAO_original, QRILC_40pct) #9/34
 
 # ------------------------------------
-# Part 2.4: Wilcoxon singed-rank Test (Visit 1 vs 2)
+# Part 2.4: Wilcoxon and T-test for Visit 1 vs 2
 # ------------------------------------
 
 #comapte visit 1 and visit 2 for each metabolite
-compare_visits_wilcoxon <- function(data) {
-  #ensure numeric conversion for relevant columns (starting from column 6)
-  data[, 6:ncol(data)] <- lapply(data[, 6:ncol(data)], as.numeric)
+visit_statistical_tests <- function(data) {
+  #numeric metabolite columns (from column 6 onward)
+  metabolites <- colnames(data)[6:ncol(data)]
   
-  #separate visits explicitly
-  visit1 <- data %>% filter(Visit == "Visit 1") %>% arrange(Participant)
-  visit2 <- data %>% filter(Visit == "Visit 2") %>% arrange(Participant)
+  #separate Visit 1 and Visit 2
+  visit1 <- data %>% filter(Visit == "Visit 1") %>% select(Participant, all_of(metabolites))
+  visit2 <- data %>% filter(Visit == "Visit 2") %>% select(Participant, all_of(metabolites))
   
-  #ensure both visits have the same participants
-  common_participants <- intersect(visit1$Participant, visit2$Participant)
-  visit1 <- visit1 %>% filter(Participant %in% common_participants)
-  visit2 <- visit2 %>% filter(Participant %in% common_participants)
+  #merge Visit 1 and Visit 2 data by participant
+  paired_data <- merge(visit1, visit2, by = "Participant", suffixes = c("_V1", "_V2"))
   
-  #get numeric column names
-  numeric_cols <- names(data)[6:ncol(data)]
+  #convert all columns to numeric 
+  data_before <- as.data.frame(lapply(paired_data[, paste0(metabolites, "_V1")], as.numeric))
+  data_after <- as.data.frame(lapply(paired_data[, paste0(metabolites, "_V2")], as.numeric))
   
-  #apply Wilcoxon test to each numeric column
-  wilcoxon_results <- map_dfr(numeric_cols, function(col) {
-    test_result <- wilcox.test(visit1[[col]], visit2[[col]], paired = TRUE, exact = FALSE)
+  #vectors to store p-values
+  p_values_wilcox <- numeric(length(metabolites))
+  p_values_ttest <- numeric(length(metabolites))
+  
+  #perform tests for each metabolite
+  for (i in seq_along(metabolites)) {
+    if (any(is.na(data_before[, i])) || any(is.na(data_after[, i]))) {
+      warning(paste("Non-numeric values detected in column", metabolites[i], ". Skipping this column."))
+      next
+    }
     
-    tibble(
-      Metabolite = col,
-      Statistic = test_result$statistic,
-      p_value = test_result$p.value
-    )
-  })
+    #wilcoxon signed-rank test
+    test_result_wilcox <- wilcox.test(data_before[, i], data_after[, i], paired = TRUE, exact = FALSE)
+    p_values_wilcox[i] <- test_result_wilcox$p.value
+    
+    #paired t-test
+    test_result_ttest <- t.test(data_before[, i], data_after[, i], paired = TRUE)
+    p_values_ttest[i] <- test_result_ttest$p.value
+  }
   
-  #adjust p-values using Benjamini-Hochberg
-  wilcoxon_results <- wilcoxon_results %>%
-    mutate(adj_p_value = p.adjust(p_value, method = "BH"))
+  #adjust p-values using Benjamini-Hochberg (FDR) correction
+  adjusted_p_values_wilcox <- p.adjust(p_values_wilcox, method = "BH")
+  adjusted_p_values_ttest <- p.adjust(p_values_ttest, method = "BH")
   
-  return(wilcoxon_results)
+  #store results in a dataframe
+  results <- data.frame(
+    Metabolite = metabolites,
+    Wilcoxon_P_Value = p_values_wilcox,
+    Wilcoxon_Adjusted_P = adjusted_p_values_wilcox,
+    TTest_P_Value = p_values_ttest,
+    TTest_Adjusted_P = adjusted_p_values_ttest
+  )
+  
+  #define significance threshold
+  alpha <- 0.05
+  
+  #count significant metabolites
+  significant_wilcox <- sum(results$Wilcoxon_Adjusted_P < alpha, na.rm = TRUE)
+  significant_ttest <- sum(results$TTest_Adjusted_P < alpha, na.rm = TRUE)
+  
+  #print results properly
+  cat("\n-------------------------------\n")
+  cat("Number of significant metabolites:\n")
+  cat("- Wilcoxon test:", significant_wilcox, "\n")
+  cat("- Paired t-test:", significant_ttest, "\n")
+  cat("-------------------------------\n")
+  
+  
+  #return results dataframe
+  return(results)
 }
+
 
 #call function to compare Visit 1 vs. Visit 2
 #original 
-visit_original_res <- compare_visits_wilcoxon(FAO_original)
-visit_origininal_signif <- significance(visit_original_res) #16/34 significant
+visit_original_res <- visit_statistical_tests(FAO_original)  #18/34 W and 16/34 T
 #Halfmin
-visit_Halfmin5pct_res <- compare_visits_wilcoxon(Halfmin_5pct)
-visit_Halfmin5pct_signif <- significance(visit_Halfmin5pct_res) #11
-visit_Halfmin10pct_res <- compare_visits_wilcoxon(Halfmin_10pct)
-visit_Halfmin10pct_signif <- significance(visit_Halfmin10pct_res) #8/34
-visit_Halfmin20pct_res <- compare_visits_wilcoxon(Halfmin_20pct)
-visit_Halfmin20pct_signif <- significance(visit_Halfmin20pct_res) #0/34
-visit_Halfmin25pct_res <- compare_visits_wilcoxon(Halfmin_25pct)
-visit_Halfmin25pct_signif <- significance(visit_Halfmin25pct_res) #0/34
-visit_Halfmin30pct_res <- compare_visits_wilcoxon(Halfmin_30pct)
-visit_Halfmin30pct_signif <- significance(visit_Halfmin30pct_res) #0/34
-visit_Halfmin40pct_res <- compare_visits_wilcoxon(Halfmin_40pct)
-visit_Halfmin40pct_signif <- significance(visit_Halfmin40pct_res) #0/34
+visit_Halfmin5pct_res <- visit_statistical_tests(Halfmin_5pct) #14/34 W and 12/34 T
+visit_Halfmin10pct_res <- visit_statistical_tests(Halfmin_10pct) #0/34 W and 6/34 T
+visit_Halfmin20pct_res <- visit_statistical_tests(Halfmin_20pct) #0/0 W and 0/0 T
+visit_Halfmin25pct_res <- visit_statistical_tests(Halfmin_25pct) #0/0 W and 0/3 T
+visit_Halfmin30pct_res <- visit_statistical_tests(Halfmin_30pct) #0/0 W and 0/0 T
+visit_Halfmin40pct_res <- visit_statistical_tests(Halfmin_40pct) #0/0 W and 0/2 T
 #KNN
-visit_KNN5pct_res <- compare_visits_wilcoxon(KNN_5pct)
-visit_KNN5pct_signif <- significance(visit_KNN5pct_res) #14/34
-visit_KNN10pct_res <- compare_visits_wilcoxon(KNN_10pct)
-visit_KNN10pct_signif <- significance(visit_KNN10pct_res) #11/34
-visit_KNN20pct_res <- compare_visits_wilcoxon(KNN_20pct)
-visit_KNN20pct_signif <- significance(visit_KNN20pct_res) #0/34
-visit_KNN25pct_res <- compare_visits_wilcoxon(KNN_25pct)
-visit_KNN25pct_signif <- significance(visit_KNN25pct_res) #6/34
-visit_KNN30pct_res <- compare_visits_wilcoxon(KNN_30pct)
-visit_KNN30pct_signif <- significance(visit_KNN30pct_res) #6/34
-visit_KNN40pct_res <- compare_visits_wilcoxon(KNN_40pct)
-visit_KNN40pct_signif <- significance(visit_KNN40pct_res) #0/34
+visit_KNN5pct_res <- visit_statistical_tests(KNN_5pct) #15/34 W 14/34 T
+visit_KNN10pct_res <- visit_statistical_tests(KNN_10pct) #14/34 W 12/34 T
+visit_KNN20pct_res <- visit_statistical_tests(KNN_20pct) #8/34 W 8/34 T
+visit_KNN25pct_res <- visit_statistical_tests(KNN_25pct) #0/34 W 7/34 T
+visit_KNN30pct_res <- visit_statistical_tests(KNN_30pct) #0/34 W 3/34 T
+visit_KNN40pct_res <- visit_statistical_tests(KNN_40pct) #0/34 W 5/34 T
 #RF
-visit_RF5pct_res <- compare_visits_wilcoxon(RF_5pct)
-visit_RF5pct_signif <- significance(visit_RF5pct_res) #15/34
-visit_RF10pct_res <- compare_visits_wilcoxon(RF_10pct)
-visit_RF10pct_signif <- significance(visit_RF10pct_res) #17/34
-visit_RF20pct_res <- compare_visits_wilcoxon(RF_20pct)
-visit_RF20pct_signif <- significance(visit_RF20pct_res) #13/34
-visit_RF25pct_res <- compare_visits_wilcoxon(RF_25pct)
-visit_RF25pct_signif <- significance(visit_RF25pct_res) #15/34
-visit_RF30pct_res <- compare_visits_wilcoxon(RF_30pct)
-visit_RF30pct_signif <- significance(visit_RF30pct_res) #16/34
-visit_RF40pct_res <- compare_visits_wilcoxon(RF_40pct)
-visit_RF40pct_signif <- significance(visit_RF40pct_res) #17/34
+visit_RF5pct_res <- visit_statistical_tests(RF_5pct) #17/34 W 16/34 T
+visit_RF10pct_res <- visit_statistical_tests(RF_10pct) #18/34 W 17/34 T
+visit_RF20pct_res <- visit_statistical_tests(RF_20pct) #18/34 W 17/34 T
+visit_RF25pct_res <- visit_statistical_tests(RF_25pct) #19/34 W 20/34 T
+visit_RF30pct_res <- visit_statistical_tests(RF_30pct) #14/34 W 14/34 T
+visit_RF40pct_res <- visit_statistical_tests(RF_40pct) #18/34 W 17/34 T
 #QRILC
-visit_QRILC5pct_res <- compare_visits_wilcoxon(QRILC_5pct)
-visit_QRILC5pct_signif <- significance(visit_QRILC5pct_res) #14/34
-visit_QRILC10pct_res <- compare_visits_wilcoxon(QRILC_10pct)
-visit_QRILC10pct_signif <- significance(visit_QRILC10pct_res) #0/34
-visit_QRILC20pct_res <- compare_visits_wilcoxon(QRILC_20pct)
-visit_QRILC20pct_signif <- significance(visit_QRILC20pct_res) #0/34
-visit_QRILC25pct_res <- compare_visits_wilcoxon(QRILC_25pct)
-visit_QRILC25pct_signif <- significance(visit_QRILC25pct_res) #0/34
-visit_QRILC30pct_res <- compare_visits_wilcoxon(QRILC_30pct)
-visit_QRILC30pct_signif <- significance(visit_QRILC30pct_res) #0/34
-visit_QRILC40pct_res <- compare_visits_wilcoxon(QRILC_40pct)
-visit_QRILC40pct_signif <- significance(visit_QRILC40pct_res) #0/34
-
-#store results in dataframe
-df_significant_visit_tests <- data.frame(
-  Method = rep(c("Halfmin", "KNN", "RF", "QRILC"), each = 6),  
-  Missing_Percentage = rep(c("5%", "10%", "20%", "25%", "30%", "40%"), times = 4), 
-  Signif_Wilcoxon_Visit = c(
-    nrow(visit_Halfmin5pct_signif),  
-    nrow(visit_Halfmin10pct_signif),  
-    nrow(visit_Halfmin20pct_signif),  
-    nrow(visit_Halfmin25pct_signif),  
-    nrow(visit_Halfmin30pct_signif),  
-    nrow(visit_Halfmin40pct_signif),  
-    nrow(visit_KNN5pct_signif),  
-    nrow(visit_KNN10pct_signif),  
-    nrow(visit_KNN20pct_signif),  
-    nrow(visit_KNN25pct_signif),  
-    nrow(visit_KNN30pct_signif),  
-    nrow(visit_KNN40pct_signif),  
-    nrow(visit_RF5pct_signif),  
-    nrow(visit_RF10pct_signif),  
-    nrow(visit_RF20pct_signif),  
-    nrow(visit_RF25pct_signif),  
-    nrow(visit_RF30pct_signif),  
-    nrow(visit_RF40pct_signif),  
-    nrow(visit_QRILC5pct_signif),  
-    nrow(visit_QRILC10pct_signif),  
-    nrow(visit_QRILC20pct_signif),  
-    nrow(visit_QRILC25pct_signif),  
-    nrow(visit_QRILC30pct_signif),  
-    nrow(visit_QRILC40pct_signif)
-  )
-)
-
-#save dataframe 
-write_csv(df_significant_visit_tests, "/Users/marcinebessire/Desktop/project/Result_Wilcoxon_Visits_FAO.csv")
-
-# ------------------------------------
-# Part 2.5: Check Significance of Tests
-# ------------------------------------
-
-#check for significance (p value < 0.05) 
-significance <- function(data) {
-  #view significant metabolites with BH adjusted p-value < 0.05
-  data_significant <- data %>% 
-    filter(adj_p_value < 0.05) %>% #usually 0.05 used 
-    arrange(adj_p_value)
-  
-  print(paste0("Nr. of significant Metabolites: ", nrow(data_significant)))
-  return(data_significant)
-}
-
-#call significance function on T-test results
-#Halfmin
-signif_halfmin_5pct_t_test <- significance(t_test_half_min_5pct) #0/34
-signif_halfmin_10pct_t_test <- significance(t_test_half_min_10pct) #0/34
-signif_halfmin_20pct_t_test <- significance(t_test_half_min_20pct) #0/34
-signif_halfmin_25pct_t_test <- significance(t_test_half_min_25pct) #0/34
-signif_halfmin_30pct_t_test <- significance(t_test_half_min_30pct) #0/34
-signif_halfmin_40pct_t_test <- significance(t_test_half_min_40pct) #14/34
-#KNN
-signif_KNN_5pct_t_test <- significance(t_test_KNN_5pct) #0/34
-signif_KNN_10pct_t_test <- significance(t_test_KNN_10pct) #0/34
-signif_KNN_20pct_t_test <- significance(t_test_KNN_20pct) #0/34
-signif_KNN_25pct_t_test <- significance(t_test_KNN_25pct) #0/34
-signif_KNN_30pct_t_test <- significance(t_test_KNN_30pct) #0/34
-signif_KNN_40pct_t_test <- significance(t_test_KNN_40pct) #7/34
-#RF
-signif_RF_5pct_t_test <- significance(t_test_RF_5pct) #0/34
-signif_RF_10pct_t_test <- significance(t_test_RF_10pct) #0/34
-signif_RF_20pct_t_test <- significance(t_test_RF_20pct) #0/34
-signif_RF_25pct_t_test <- significance(t_test_RF_25pct) #0/34
-signif_RF_30pct_t_test <- significance(t_test_RF_30pct) #0/34
-signif_RF_40pct_t_test <- significance(t_test_RF_40pct) #0/34
-#QRILC
-signif_QRILC_5pct_t_test <- significance(t_test_QRILC_5pct) #0/34
-signif_QRILC_10pct_t_test <- significance(t_test_QRILC_10pct) #0/34
-signif_QRILC_20pct_t_test <- significance(t_test_QRILC_20pct) #0/34
-signif_QRILC_25pct_t_test <- significance(t_test_QRILC_25pct) #0/34
-signif_QRILC_30pct_t_test <- significance(t_test_QRILC_30pct) #0/34
-signif_QRILC_40pct_t_test <- significance(t_test_QRILC_40pct) #0/34
-
-
-#call significance function on wilcoxon results
-#Halfmin
-signif_halfmin_5pct_wilcox <- significance(wilcox_half_min_5pct) #0/34
-signif_halfmin_10pct_wilcox <- significance(wilcox_half_min_10pct) #0/34
-signif_halfmin_20pct_wilcox <- significance(wilcox_half_min_20pct) #0/34
-signif_halfmin_25pct_wilcox <- significance(wilcox_half_min_25pct) #0/34
-signif_halfmin_30pct_wilcox <- significance(wilcox_half_min_30pct) #0/34
-signif_halfmin_40pct_wilcox <- significance(wilcox_half_min_40pct) #21/34
-#KNN
-signif_KNN_5pct_wilcox <- significance(wilcox_half_min_5pct) #0/34
-signif_KNN_10pct_wilcox <- significance(wilcox_half_min_10pct) #0/34
-signif_KNN_20pct_wilcox <- significance(wilcox_half_min_20pct) #0/34
-signif_KNN_25pct_wilcox <- significance(wilcox_half_min_25pct) #0/34
-signif_KNN_30pct_wilcox <- significance(wilcox_half_min_30pct) #0/34
-signif_KNN_40pct_wilcox <- significance(wilcox_half_min_40pct) #21/34
-#RF
-signif_RF_5pct_wilcox <- significance(wilcox_RF_5pct) #0/34
-signif_RF_10pct_wilcox <- significance(wilcox_RF_10pct) #0/34
-signif_RF_20pct_wilcox <- significance(wilcox_RF_20pct) #0/34
-signif_RF_25pct_wilcox <- significance(wilcox_RF_25pct) #0/34
-signif_RF_30pct_wilcox <- significance(wilcox_RF_30pct) #0/34
-signif_RF_40pct_wilcox <- significance(wilcox_RF_40pct) #0/34
-#QRILC
-signif_QRILC_5pct_wilcox <- significance(wilcox_QRILC_5pct) #0/34
-signif_QRILC_10pct_wilcox <- significance(wilcox_QRILC_10pct) #0/34
-signif_QRILC_20pct_wilcox <- significance(wilcox_QRILC_20pct) #0/34
-signif_QRILC_25pct_wilcox <- significance(wilcox_QRILC_25pct) #0/34
-signif_QRILC_30pct_wilcox <- significance(wilcox_QRILC_30pct) #0/34
-signif_QRILC_40pct_wilcox <- significance(wilcox_QRILC_40pct) #5/34
-
-
-#Store significant results
-df_significant_tests <- data.frame(
-  Method = rep(c("Halfmin", "KNN", "RF", "QRILC"), each = 6),  
-  Missing_Percentage = rep(c("5%", "10%", "20%", "25%", "30%", "40%"), times = 4),  
-  Signif_T_Test = c(
-    nrow(signif_halfmin_5pct_t_test),  
-    nrow(signif_halfmin_10pct_t_test),  
-    nrow(signif_halfmin_20pct_t_test),  
-    nrow(signif_halfmin_25pct_t_test),  
-    nrow(signif_halfmin_30pct_t_test),  
-    nrow(signif_halfmin_40pct_t_test),  
-    nrow(signif_KNN_5pct_t_test),  
-    nrow(signif_KNN_10pct_t_test),  
-    nrow(signif_KNN_20pct_t_test),  
-    nrow(signif_KNN_25pct_t_test),  
-    nrow(signif_KNN_30pct_t_test),  
-    nrow(signif_KNN_40pct_t_test),  
-    nrow(signif_RF_5pct_t_test),  
-    nrow(signif_RF_10pct_t_test),  
-    nrow(signif_RF_20pct_t_test),  
-    nrow(signif_RF_25pct_t_test),  
-    nrow(signif_RF_30pct_t_test),  
-    nrow(signif_RF_40pct_t_test),  
-    nrow(signif_QRILC_5pct_t_test),  
-    nrow(signif_QRILC_10pct_t_test),  
-    nrow(signif_QRILC_20pct_t_test),  
-    nrow(signif_QRILC_25pct_t_test),  
-    nrow(signif_QRILC_30pct_t_test),  
-    nrow(signif_QRILC_40pct_t_test)
-  ),
-  Signif_Wilcoxon = c(
-    nrow(signif_halfmin_5pct_wilcox),  
-    nrow(signif_halfmin_10pct_wilcox),  
-    nrow(signif_halfmin_20pct_wilcox),  
-    nrow(signif_halfmin_25pct_wilcox),  
-    nrow(signif_halfmin_30pct_wilcox),  
-    nrow(signif_halfmin_40pct_wilcox),  
-    nrow(signif_KNN_5pct_wilcox),  
-    nrow(signif_KNN_10pct_wilcox),  
-    nrow(signif_KNN_20pct_wilcox),  
-    nrow(signif_KNN_25pct_wilcox),  
-    nrow(signif_KNN_30pct_wilcox),  
-    nrow(signif_KNN_40pct_wilcox),  
-    nrow(signif_RF_5pct_wilcox),  
-    nrow(signif_RF_10pct_wilcox),  
-    nrow(signif_RF_20pct_wilcox),  
-    nrow(signif_RF_25pct_wilcox),  
-    nrow(signif_RF_30pct_wilcox),  
-    nrow(signif_RF_40pct_wilcox),  
-    nrow(signif_QRILC_5pct_wilcox),  
-    nrow(signif_QRILC_10pct_wilcox),  
-    nrow(signif_QRILC_20pct_wilcox),  
-    nrow(signif_QRILC_25pct_wilcox),  
-    nrow(signif_QRILC_30pct_wilcox),  
-    nrow(signif_QRILC_40pct_wilcox)
-  )
-)
-
-write_csv(df_significant_tests, "/Users/marcinebessire/Desktop/project/Result_StatTests_FAO.csv")
-
+visit_QRILC5pct_res <- visit_statistical_tests(QRILC_5pct) #17/34 W 15/34 T
+visit_QRILC10pct_res <- visit_statistical_tests(QRILC_10pct) #0/34 W 8/34 T
+visit_QRILC20pct_res <- visit_statistical_tests(QRILC_20pct) #0/34 W 5/34 T
+visit_QRILC25pct_res <- visit_statistical_tests(QRILC_25pct) #0/34 W 3/34 T
+visit_QRILC30pct_res <- visit_statistical_tests(QRILC_30pct) #0/34 W 0/34 T
+visit_QRILC40pct_res <- visit_statistical_tests(QRILC_40pct) #0/34 W 1/34 T
 
 # ------------------------------------
 # Part 3: NRMSE
 # ------------------------------------
 
 #function to calculate NRMSE
-calculate_nrmse <- function(original, imputed) {
+calculate_weighted_nrmse <- function(original, imputed, method, percentage) {
   #take numeric columns 
   numeric_col_names <- names(original)[6:ncol(original)]
   
@@ -642,13 +497,15 @@ calculate_nrmse <- function(original, imputed) {
     #ensure no missing values for comparison
     valid_indices <- !is.na(actual_val) & !is.na(predicted_val)
     
-    if (sum(valid_indices) > 2) {  #if enouhg datapoints
+    if (sum(valid_indices) > 2) {  #if enough data points
       mse <- mean((actual_val[valid_indices] - predicted_val[valid_indices])^2) #mean squared error
       rmse <- sqrt(mse) #root mean squared error
-      norm_factor <- max(actual_val, na.rm = TRUE) - min(actual_val, na.rm = TRUE) #denominator 
+      norm_factor <- max(actual_val[valid_indices], na.rm = TRUE) - min(actual_val[valid_indices], na.rm = TRUE) #denominator 
       
       if (norm_factor > 0) {
-        return(rmse/norm_factor) #NRMSE
+        nrmse <- rmse / norm_factor #NRMSE
+        weighted_nrmse <- nrmse * percentage
+        return(weighted_nrmse)
       } else {
         return(NA) #avoid dividing by 0
       }
@@ -657,44 +514,90 @@ calculate_nrmse <- function(original, imputed) {
     }
   })
 
-  return(data.frame(Variable = numeric_col_names, NRMSE = nrmse_values))
-  
+  return(data.frame(
+    Metabolite = numeric_col_names, 
+    Imputation_Method = method,
+    MCAR_Proportion = (percentage*100),
+    Weighted_NRMSE = nrmse_values
+    ))
 }
 
 #call function to compute NRMSE
 #Halfmin
-nrmse_res_halfmin_5pct <- calculate_nrmse(FAO_original, Halfmin_5pct)
-nrmse_res_halfmin_10pct <- calculate_nrmse(FAO_original, Halfmin_10pct)
-nrmse_res_halfmin_20pct <- calculate_nrmse(FAO_original, Halfmin_20pct)
-nrmse_res_halfmin_25pct <- calculate_nrmse(FAO_original, Halfmin_25pct)
-nrmse_res_halfmin_30pct <- calculate_nrmse(FAO_original, Halfmin_30pct)
-nrmse_res_halfmin_40pct <- calculate_nrmse(FAO_original, Halfmin_40pct)
+nrmse_res_halfmin_5pct <- calculate_weighted_nrmse(FAO_original, Halfmin_5pct, "Halfmin", 0.05)
+nrmse_res_halfmin_10pct <- calculate_weighted_nrmse(FAO_original, Halfmin_10pct, "Halfmin", 0.1)
+nrmse_res_halfmin_20pct <- calculate_weighted_nrmse(FAO_original, Halfmin_20pct,"Halfmin", 0.2)
+nrmse_res_halfmin_25pct <- calculate_weighted_nrmse(FAO_original, Halfmin_25pct, "Halfmin", 0.25)
+nrmse_res_halfmin_30pct <- calculate_weighted_nrmse(FAO_original, Halfmin_30pct, "Halfmin", 0.3)
+nrmse_res_halfmin_40pct <- calculate_weighted_nrmse(FAO_original, Halfmin_40pct, "Halfmin", 0.4)
 #KNN
-nrmse_res_KNN_5pct <- calculate_nrmse(FAO_original, KNN_5pct)
-nrmse_res_KNN_10pct <- calculate_nrmse(FAO_original, KNN_10pct)
-nrmse_res_KNN_20pct <- calculate_nrmse(FAO_original, KNN_20pct)
-nrmse_res_KNN_25pct <- calculate_nrmse(FAO_original, KNN_25pct)
-nrmse_res_KNN_30pct <- calculate_nrmse(FAO_original, KNN_30pct)
-nrmse_res_KNN_40pct <- calculate_nrmse(FAO_original, KNN_40pct)
+nrmse_res_KNN_5pct <- calculate_weighted_nrmse(FAO_original, KNN_5pct, "KNN", 0.05)
+nrmse_res_KNN_10pct <- calculate_weighted_nrmse(FAO_original, KNN_10pct, "KNN", 0.1)
+nrmse_res_KNN_20pct <- calculate_weighted_nrmse(FAO_original, KNN_20pct, "KNN", 0.2)
+nrmse_res_KNN_25pct <- calculate_weighted_nrmse(FAO_original, KNN_25pct, "KNN", 0.25)
+nrmse_res_KNN_30pct <- calculate_weighted_nrmse(FAO_original, KNN_30pct, "KNN", 0.3)
+nrmse_res_KNN_40pct <- calculate_weighted_nrmse(FAO_original, KNN_40pct, "KNN", 0.4)
 #RF
-nrmse_res_RF_5pct <- calculate_nrmse(FAO_original, RF_5pct)
-nrmse_res_RF_10pct <- calculate_nrmse(FAO_original, RF_10pct)
-nrmse_res_RF_20pct <- calculate_nrmse(FAO_original, RF_20pct)
-nrmse_res_RF_25pct <- calculate_nrmse(FAO_original, RF_25pct)
-nrmse_res_RF_30pct <- calculate_nrmse(FAO_original, RF_30pct)
-nrmse_res_RF_40pct <- calculate_nrmse(FAO_original, RF_40pct)
+nrmse_res_RF_5pct <- calculate_weighted_nrmse(FAO_original, RF_5pct, "RF", 0.05)
+nrmse_res_RF_10pct <- calculate_weighted_nrmse(FAO_original, RF_10pct, "RF", 0.1)
+nrmse_res_RF_20pct <- calculate_weighted_nrmse(FAO_original, RF_20pct, "RF", 0.2)
+nrmse_res_RF_25pct <- calculate_weighted_nrmse(FAO_original, RF_25pct, "RF", 0.25)
+nrmse_res_RF_30pct <- calculate_weighted_nrmse(FAO_original, RF_30pct, "RF", 0.3)
+nrmse_res_RF_40pct <- calculate_weighted_nrmse(FAO_original, RF_40pct, "RF", 0.4)
 #QRILC
-nrmse_res_QRILC_5pct <- calculate_nrmse(FAO_original, QRILC_5pct)
-nrmse_res_QRILC_10pct <- calculate_nrmse(FAO_original, QRILC_10pct)
-nrmse_res_QRILC_20pct <- calculate_nrmse(FAO_original, QRILC_20pct)
-nrmse_res_QRILC_25pct <- calculate_nrmse(FAO_original, QRILC_25pct)
-nrmse_res_QRILC_30pct <- calculate_nrmse(FAO_original, QRILC_30pct)
-nrmse_res_QRILC_40pct <- calculate_nrmse(FAO_original, QRILC_40pct)
+nrmse_res_QRILC_5pct <- calculate_weighted_nrmse(FAO_original, QRILC_5pct, "QRILC", 0.05)
+nrmse_res_QRILC_10pct <- calculate_weighted_nrmse(FAO_original, QRILC_10pct, "QRILC", 0.1)
+nrmse_res_QRILC_20pct <- calculate_weighted_nrmse(FAO_original, QRILC_20pct, "QRILC", 0.2)
+nrmse_res_QRILC_25pct <- calculate_weighted_nrmse(FAO_original, QRILC_25pct, "QRILC", 0.25)
+nrmse_res_QRILC_30pct <- calculate_weighted_nrmse(FAO_original, QRILC_30pct, "QRILC", 0.3)
+nrmse_res_QRILC_40pct <- calculate_weighted_nrmse(FAO_original, QRILC_40pct, "QRILC", 0.4)
 
 # ------------------------------------
 # Part 3.1: NRMSE Plot 
 # ------------------------------------
 
+#for plotting combine all nrmse results into one dataframe
+nrmse_data <- bind_rows(
+  nrmse_res_halfmin_5pct, nrmse_res_halfmin_10pct, nrmse_res_halfmin_20pct, 
+  nrmse_res_halfmin_25pct, nrmse_res_halfmin_30pct, nrmse_res_halfmin_40pct,
+  
+  nrmse_res_KNN_5pct, nrmse_res_KNN_10pct, nrmse_res_KNN_20pct, 
+  nrmse_res_KNN_25pct, nrmse_res_KNN_30pct, nrmse_res_KNN_40pct,
+  
+  nrmse_res_RF_5pct, nrmse_res_RF_10pct, nrmse_res_RF_20pct, 
+  nrmse_res_RF_25pct, nrmse_res_RF_30pct, nrmse_res_RF_40pct,
+  
+  nrmse_res_QRILC_5pct, nrmse_res_QRILC_10pct, nrmse_res_QRILC_20pct, 
+  nrmse_res_QRILC_25pct, nrmse_res_QRILC_30pct, nrmse_res_QRILC_40pct
+)
+  
+#convert MCAR_Proportion to a factor for correct ordering in the plot
+nrmse_data$MCAR_Proportion <- as.factor(nrmse_data$MCAR_Proportion)
+
+#Generate Boxplot 
+ggplot(nrmse_data, aes(x = MCAR_Proportion, y = Weighted_NRMSE, fill = Imputation_Method)) +
+  geom_boxplot(outlier.shape = NA, alpha = 0.7) + #boxplot wiht transparency and w/o outliers
+  scale_fill_manual(values = c("lightblue", "orange", "blue", "magenta")) +
+  labs(
+    title = "Weighted NRMSE across Imputation Method and MCAR Proportions",
+    x = "MCAR Proportion (%)",
+    y = "Weigthed NRMSE", 
+    fill = "Imputation Method"
+  ) +
+  theme_minimal() +
+  theme(
+    legend.position = "right",  # Keep legend for clarity
+    legend.title = element_text(size = 14, face = "bold"),
+    legend.text = element_text(size = 12),
+    axis.title.x = element_text(size = 16, face = "bold"),
+    axis.title.y = element_text(size = 16, face = "bold"),
+    axis.text.x = element_text(size = 14),
+    axis.text.y = element_text(size = 14),
+    plot.title = element_text(size = 18, face = "bold", hjust = 0.5),
+    panel.grid.major = element_line(color = "gray85"),  # Light gray grid
+    panel.grid.minor = element_blank()  # Remove minor grid
+  ) +
+  ylim(0,0.4)
 
 
 # ------------------------------------
@@ -767,7 +670,7 @@ plot_distribution <- function(original, imputed, method, percentage) {
   numeric_original <- original[, 6:ncol(original)]
   numeric_imputed <- imputed[, 6:ncol(imputed)]
   
-  #convert to logn format for plotting
+  #convert to long format for plotting
   original_long <- numeric_original %>%
     pivot_longer(cols = everything(), names_to = "Metabolite", values_to = "Value") %>%
     mutate(Data = "Original")
@@ -775,18 +678,30 @@ plot_distribution <- function(original, imputed, method, percentage) {
   imputed_long <- numeric_imputed %>%
     pivot_longer(cols = everything(), names_to = "Metabolite", values_to = "Value") %>%
     mutate(Data = "Imputed")
-  
+
   #combine data
   combined_data <- bind_rows(original_long, imputed_long)
   
+  #caclualte mean 
+  mean_data <- combined_data %>%
+    group_by(Metabolite, Data) %>%
+    summarise(mean_value = mean(Value, na.rm = TRUE), .groups = "drop")
+  
   #plot 
   plot <- ggplot(combined_data, aes(x = Value, fill = Data)) +
-    geom_density(alpha = 0.5) + #transparency
+    geom_density(alpha = 0.5, size = 1) + #transparency
     facet_wrap(~ Metabolite, scales = "free") +
     theme_minimal() +
     labs(title = paste0("Density Distribution Before and After Imputation (", method, ", ", percentage, "% Missing)"),
          x = "Value",
-         y = "Density")
+         y = "Density") +
+    #add mean lines
+    geom_vline(data = mean_data %>% filter(Data == "Original"),
+               aes(xintercept = mean_value), color = "blue", linewidth = 0.8, linetype = "dashed") +
+    geom_vline(data = mean_data %>% filter(Data == "Imputed"),
+               aes(xintercept = mean_value), color = "red", linewidth = 0.8, linetype = "dashed") +
+    theme(legend.position = "bottom")
+    
   
   print(plot)
   return(combined_data)
@@ -820,23 +735,44 @@ plot_whole_distribution <- function(original, imputed, method, percentage) {
   #convert to long format for plotting
   original_long <- numeric_original %>%
     pivot_longer(cols = everything(), names_to = "Metabolite", values_to = "Value") %>%
-    mutate(Data = "Original")
+    mutate(Data = "Original Data")
   
   imputed_long <- numeric_imputed %>%
     pivot_longer(cols = everything(), names_to = "Metabolite", values_to = "Value") %>%
-    mutate(Data = "Imputed")
+    mutate(Data = "Imputed Data")
+  
+  #identify imputed values
+  imputed_values <- numeric_original != numeric_imputed
+  
+  imputed_only_long <- numeric_imputed %>%
+    as.data.frame() %>%
+    replace(!imputed_values, NA) %>%  #keep only changed (imputed) values
+    pivot_longer(cols = everything(), names_to = "Metabolite", values_to = "Value") %>%
+    filter(!is.na(Value)) %>%
+    mutate(Data = "Imputed Values")  
   
   #combine both data
-  combined_data <- bind_rows(original_long, imputed_long)
+  combined_data <- bind_rows(original_long, imputed_long, imputed_only_long)
+  
+  #compute mean
+  mean_data <- combined_data %>%
+    group_by(Data) %>%
+    summarise(mean_value = mean(Value, na.rm = TRUE), .groups = "drop")
+
   
   #plot overall density distribution
   plot <- ggplot(combined_data, aes(x = Value, fill = Data)) +
-    geom_density(alpha = 0.5) + # Transparency for overlap
+    geom_density(alpha = 0.5) + 
     theme_minimal() +
     labs(title = paste0("Overall Density Distribution Before and After Imputation (", method, ", ", percentage, "% Missing)"),
          x = "Value",
          y = "Density") +
-    xlim(-100,500)
+    geom_vline(data = mean_data %>% filter(Data == "Original Data"),
+               aes(xintercept = mean_value), color = "blue", linewidth = 1, linetype = "dashed") + 
+    geom_vline(data = mean_data %>% filter(Data == "Imputed Data"),
+               aes(xintercept = mean_value), color = "red", linewidth = 1, linetype = "dashed") +
+    xlim(-100, 400) + 
+    theme(legend.position = "bottom")
   
   print(plot)
   return(combined_data)

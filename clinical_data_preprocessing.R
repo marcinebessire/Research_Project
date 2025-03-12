@@ -84,7 +84,7 @@ make_new_columns <- function(data){
     group_by(Participant) %>%
     mutate(Visit = ifelse(row_number() == 1, "Visit 1", "Visit 2")) %>% #assign visit depending on date  %>%
     select(ID,Participant, MonthDay, Year, Time, Visit, everything()) %>%
-    select(-Date, -Day, -Month, -MonthDaycalc, -Participant_Number) %>%
+    select(-Date, -Day, -Month, -MonthDaycalc, -Participant_Number, -Full_Date) %>%
   
   return(data)
 }
