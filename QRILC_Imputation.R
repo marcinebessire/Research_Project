@@ -186,8 +186,6 @@ test_results <- data.frame(
             significant_ttest, total_metabolites - significant_ttest)
 )
 
-pdf("/Users/marcinebessire/Desktop/project/QRILC_Significance.pdf", width = 10, height = 6)
-
 #plot grouped bar chart
 ggplot(test_results, aes(x = Test, y = Count, fill = Category)) +
   geom_bar(position="dodge", stat="identity") +  #grouped bars
@@ -199,7 +197,6 @@ ggplot(test_results, aes(x = Test, y = Count, fill = Category)) +
   theme(legend.position = "top") +
   geom_text(aes(label = Count), position = position_dodge(width = 0.9), vjust = -0.5)  #add labels
 
-dev.off()
 
 # Part 3.2 -------
 # Check normality of data 
@@ -217,7 +214,7 @@ shapiro_df24 <- data.frame(Metabolite = names(shapiro_results24), p_value = shap
 non_normal_count23 <- sum(shapiro_df23$p_value < 0.05)
 non_normal_count23 #58 metabolites are non-normal distributed 43 with CV
 non_normal_count24 <- sum(shapiro_df24$p_value < 0.05)
-non_normal_count24 #48 metabolites are non-normal distributed 28 with CV
+non_normal_count24 #47 metabolites are non-normal distributed 28 with CV
 
 
 # Part 4 -----
@@ -227,199 +224,73 @@ non_normal_count24 #48 metabolites are non-normal distributed 28 with CV
 numeric23 <- data23[, 6:ncol(data23)]
 numeric24 <- data24[, 6:ncol(data24)]
 
-#2023
-#convert data to long format for visualization
-imputed_23_long <- QRILC23 %>%
-  pivot_longer(cols = everything(), names_to = "Metabolite", values_to = "Imputed_Data")
-
-original_23_long <- numeric23 %>%
-  pivot_longer(cols = everything(), names_to = "Metabolite", values_to = "Original_Data")
-
-#identify imputed values => missing values were replaced by half of the minimum observed value.
-imputed_only_23 <- original_23_long %>%
-  mutate(Imputed = is.na(Original_Data)) %>%
-  filter(Imputed) %>%
-  inner_join(imputed_23_long %>%
-               distinct(Metabolite, .keep_all = TRUE), by = "Metabolite") %>%
-  mutate(Dataset = "Imputed_Values")
-
-
-#merge original and imputed datasets
-comparison_23 <- original_23_long %>%
-  left_join(imputed_23_long %>%
-              distinct(Metabolite, .keep_all = TRUE), by = "Metabolite") %>%
-  pivot_longer(cols = c("Original_Data", "Imputed_Data"), 
-               names_to = "Dataset", values_to = "Value")
-
-#add Imputed_Only as a separate dataset
-imputed_only_23 <- imputed_only_23 %>%
-  mutate(Value = Imputed_Data, Dataset = "Imputed_Values") %>%
-  select(Metabolite, Dataset, Value)
-
-#combine both datasets
-comparison_23 <- bind_rows(comparison_23, imputed_only_23)
-
-#Check row count again 
-#2023: should have 99 MV and 6972 total values
-dataset_counts <- comparison_23 %>%
-  group_by(Dataset) %>%
-  summarise(Count = n())
-
-print(dataset_counts) #99 MV 
-
-#2024
-#convert data to long format for visualization
-imputed_24_long <- QRILC24 %>%
-  pivot_longer(cols = everything(), names_to = "Metabolite", values_to = "Imputed_Data")
-
-original_24_long <- numeric24 %>%
-  pivot_longer(cols = everything(), names_to = "Metabolite", values_to = "Original_Data")
-
-#identify imputed values => missing values were replaced by half of the minimum observed value.
-imputed_only_24 <- original_24_long %>%
-  mutate(Imputed = is.na(Original_Data)) %>%
-  filter(Imputed) %>%
-  inner_join(imputed_24_long %>%
-               distinct(Metabolite, .keep_all = TRUE), by = "Metabolite") %>%
-  mutate(Dataset = "Imputed_Values")
-
-#merge original and imputed datasets
-comparison_24 <- original_24_long %>%
-  left_join(imputed_24_long %>%
-              distinct(Metabolite, .keep_all = TRUE), by = "Metabolite") %>%
-  pivot_longer(cols = c("Original_Data", "Imputed_Data"), 
-               names_to = "Dataset", values_to = "Value")
-
-#add Imputed_Only as a separate dataset
-imputed_only_24 <- imputed_only_24 %>%
-  mutate(Value = Imputed_Data, Dataset = "Imputed_Values") %>%
-  select(Metabolite, Dataset, Value)
-
-#combine both datasets
-comparison_24 <- bind_rows(comparison_24, imputed_only_24)
-
-#2024: should have 526 MV and 6048 total values
-dataset_counts <- comparison_24 %>%
-  group_by(Dataset) %>%
-  summarise(Count = n())
-
-print(dataset_counts) #526 MV
-
-#Now plot 
-#open a PDF device to save multiple plots
-pdf("/Users/marcinebessire/Desktop/project/QRILC_Distribution.pdf", width = 8, height = 6)
-
-#2023 plot 
-ggplot(comparison_23, aes(x = Value, fill = Dataset)) +
-  geom_density(alpha = 0.5) +  # Transparency for overlapping
-  labs(title = "Distribution of Original/Imputed Data and Imputed Values with QRILC Imputation (2023)",
-       x = "Metabolite Value",
-       y = "Density") +
-  theme_minimal() + 
-  scale_fill_manual(values = c("Original_Data" = "lightblue", 
-                               "Imputed_Data" = "red", 
-                               "Imputed_Values" = "green")) +
-  xlim(-10,50)
-
-#2024 plot
-#plot density distributions for original and imputed data separately
-ggplot(comparison_24, aes(x = Value, fill = Dataset)) +
-  geom_density(alpha = 0.5) +  #transparency for overlapping
-  labs(title = "Distribution of Original/Imputed Data, and Imputed Values with QRILC Imputation (2024)",
-       x = "Metabolite Value",
-       y = "Density") +
-  theme_minimal() + 
-  scale_fill_manual(values = c("Original_Data" = "lightblue", 
-                               "Imputed_Data" = "red", 
-                               "Imputed_Values" = "green")) +
-  xlim(-10,50)
-
-dev.off()
-
-# Part 7.2 -----
-# QQ plot comparing distribution
-
-pdf("/Users/marcinebessire/Desktop/project/QRILC_QQplots.pdf", width = 8, height = 6)
-
-#QQ Plot Function
-qq_plot <- function(data_x, data_y, x_label, y_label, title) {
-  df <- data.frame(x = quantile(data_x, probs = seq(0, 1, 0.01), na.rm = TRUE),
-                   y = quantile(data_y, probs = seq(0, 1, 0.01), na.rm = TRUE))
+#function to plot distribution before and after imputation (entire dataset)
+plot_whole_distribution <- function(original, imputed, method, year) {
+  #numeric columns (starting from column 6)
+  numeric_original <- original
+  numeric_imputed <- imputed
   
-  ggplot(df, aes(x = x, y = y)) +
-    geom_point() +
-    geom_abline(slope = 1, intercept = 0, color = "red", linetype = "dashed") +
-    labs(title = title, x = x_label, y = y_label) +
-    theme_minimal()
+  #count missing values in the original dataset
+  missing_count <- sum(is.na(numeric_original))
+  
+  #convert to long format for plotting
+  original_long <- numeric_original %>%
+    pivot_longer(cols = everything(), names_to = "Metabolite", values_to = "Value") %>%
+    mutate(Data = "Original Data")
+  
+  imputed_long <- numeric_imputed %>%
+    pivot_longer(cols = everything(), names_to = "Metabolite", values_to = "Value") %>%
+    mutate(Data = "Imputed Data")
+  
+  #identify imputed values (handling NA correctly)
+  imputed_values <- is.na(numeric_original) & !is.na(numeric_imputed)
+  
+  imputed_only_long <- numeric_imputed %>%
+    as.data.frame() %>%
+    mutate(across(everything(), ~ replace(., !imputed_values[, cur_column()], NA))) %>%
+    pivot_longer(cols = everything(), names_to = "Metabolite", values_to = "Value") %>%
+    filter(!is.na(Value)) %>%
+    mutate(Data = "Imputed Values")
+  
+  #count values in each long format dataset (for ensuring that it is correctly done)
+  original_count <- nrow(original_long)
+  imputed_count <- nrow(imputed_long)
+  imputed_only_count <- nrow(imputed_only_long)
+  
+  print(paste("Total values in Original Data:", original_count))
+  print(paste("Total values in Imputed Data:", imputed_count))
+  print(paste("Total imputed values (only new values):", imputed_only_count))
+  
+  #combine all data
+  combined_data <- bind_rows(original_long, imputed_long, imputed_only_long)
+  
+  #compute mean for each data category
+  mean_data <- combined_data %>%
+    group_by(Data) %>%
+    summarise(mean_value = mean(Value, na.rm = TRUE), .groups = "drop")
+  
+  #plot overall density distribution
+  plot <- ggplot(combined_data, aes(x = Value, fill = Data)) +
+    geom_density(alpha = 0.5, na.rm = TRUE) + 
+    theme_minimal() +
+    labs(title = paste0("Overall Density Distribution Before and After Imputation (", method, " ", year, ")"),
+         x = "Value",
+         y = "Density") +
+    geom_vline(data = mean_data %>% filter(Data == "Original Data"),
+               aes(xintercept = mean_value), color = "blue", linewidth = 1, linetype = "dashed") + 
+    geom_vline(data = mean_data %>% filter(Data == "Imputed Data"),
+               aes(xintercept = mean_value), color = "red", linewidth = 1, linetype = "dashed") +
+    xlim(-10, 100) + 
+    theme(legend.position = "bottom")
+  
+  print(plot)
+  return(combined_data)
 }
 
-#QQ Plot: Imputed Data 2023 vs. Original Data 2023
-print(qq_plot(comparison_23$Value[comparison_23$Dataset == "Imputed_Data"], 
-              comparison_23$Value[comparison_23$Dataset == "Original_Data"], 
-              "Original Data (2023)", "Imputed Data (2023)", 
-              "QQ Plot: Imputed Data vs. Original Data (2023)"))
+#example function call
+dist_QRILC23 <- plot_whole_distribution(numeric23, QRILC23, "QRILC", "2023")
+dist_QRILC24 <- plot_whole_distribution(numeric24, QRILC24, "QRILC", "2024")
 
-#QQ Plot: Imputed Data 2024 vs. Original Data 2024
-print(qq_plot(comparison_24$Value[comparison_24$Dataset == "Imputed_Data"], 
-              comparison_24$Value[comparison_24$Dataset == "Original_Data"], 
-              "Original Data (2024)", "Imputed Data (2024)", 
-              "QQ Plot: Imputed Data vs. Original Data (2024)"))
-
-#QQ Plot: Imputed Data 2024 vs. Imputed Data 2023
-print(qq_plot(comparison_24$Value[comparison_24$Dataset == "Imputed_Data"], 
-              comparison_23$Value[comparison_23$Dataset == "Imputed_Data"], 
-              "Imputed Data (2023)", "Imputed Data (2024)", 
-              "QQ Plot: Imputed Data 2024 vs. Imputed Data 2023"))
-
-#QQ Plot: Original Data 2024 vs. Original Data 2023
-print(qq_plot(comparison_24$Value[comparison_24$Dataset == "Original_Data"], 
-              comparison_23$Value[comparison_23$Dataset == "Original_Data"], 
-              "Original Data (2023)", "Original Data (2024)", 
-              "QQ Plot: Original Data 2024 vs. Original Data 2023"))
-
-dev.off()
-
-#remove outliers using IQR methode (interquartile range to filter out extreme values)
-remove_outliers <- function(data) {
-  Q1 <- quantile(data, 0.25, na.rm = TRUE)
-  Q3 <- quantile(data, 0.75, na.rm = TRUE)
-  IQR_value <- Q3 - Q1
-  lower_bound <- Q1 - 1.5 * IQR_value
-  upper_bound <- Q3 + 1.5 * IQR_value
-  return(data[data >= lower_bound & data <= upper_bound])
-}
-
-#remove the outliers from the data
-imputed_23_clean <- remove_outliers(comparison_23$Value[comparison_23$Dataset == "Imputed_Data"])
-original_23_clean <- remove_outliers(comparison_23$Value[comparison_23$Dataset == "Original_Data"])
-
-imputed_24_clean <- remove_outliers(comparison_24$Value[comparison_24$Dataset == "Imputed_Data"])
-original_24_clean <- remove_outliers(comparison_24$Value[comparison_24$Dataset == "Original_Data"])
-
-#pdf to save the QQ plots
-pdf("/Users/marcinebessire/Desktop/project/QRILC_QQplots_NoOutliers.pdf", width = 8, height = 6)
-
-#QQ Plot: Imputed Data 2023 vs. Original Data 2023
-print(qq_plot(original_23_clean, imputed_23_clean, 
-              "Original Data (2023)", "Imputed Data (2023)", 
-              "QQ Plot: Imputed Data vs. Original Data (2023)"))
-
-# QQ Plot: Imputed Data 2024 vs. Original Data 2024
-print(qq_plot(original_24_clean, imputed_24_clean, 
-              "Original Data (2024)", "Imputed Data (2024)", 
-              "QQ Plot: Imputed Data vs. Original Data (2024)"))
-
-# QQ Plot: Imputed Data 2024 vs. Imputed Data 2023
-print(qq_plot(imputed_23_clean, imputed_24_clean, 
-              "Imputed Data (2023)", "Imputed Data (2024)", 
-              "QQ Plot: Imputed Data 2024 vs. Imputed Data 2023"))
-
-# QQ Plot: Original Data 2024 vs. Original Data 2023
-print(qq_plot(original_23_clean, original_24_clean, 
-              "Original Data (2023)", "Original Data (2024)", 
-              "QQ Plot: Original Data 2024 vs. Original Data 2023"))
-
-dev.off()
 
 # Part 8 ------
 # calculate normalized difference of each imputation (before and after) and plot
@@ -460,8 +331,6 @@ mean_comparison24 <- left_join(mean_before24, mean_after24, by = "Metabolite")
 mean_comparison24 <- mean_comparison24 %>%
   mutate(Normalized_Difference = (Mean_After - Mean_Before) / Mean_Before)
 
-
-pdf("/Users/marcinebessire/Desktop/project/QRILC_Normalized_Difference.pdf", width = 10, height = 6)
 
 #plot normalized difference
 ggplot(mean_comparison23, aes(x = Metabolite, y = Normalized_Difference, fill = Normalized_Difference)) +
@@ -504,10 +373,26 @@ ggplot(mean_comparison24, aes(x = Normalized_Difference)) +
   xlim(-0.4,0.4) +
   geom_vline(xintercept = 0, linetype = "dashed", color = "red")  #reference line at 0
 
-dev.off()
 
 # Part 9 -----
 # Kolomogorov-Smirnov test: nonparametric test to test whether two ssamples came from same distirbution
+
+#convert data to long format
+#2023
+imputed_23_long <- QRILC23 %>%
+  pivot_longer(cols = everything(), names_to = "Metabolite", values_to = "Imputed_Data")
+
+original_23_long <- numeric23 %>%
+  pivot_longer(cols = everything(), names_to = "Metabolite", values_to = "Original_Data")
+
+#2024
+#convert data to long format
+imputed_24_long <- QRILC24 %>%
+  pivot_longer(cols = everything(), names_to = "Metabolite", values_to = "Imputed_Data")
+
+original_24_long <- numeric24 %>%
+  pivot_longer(cols = everything(), names_to = "Metabolite", values_to = "Original_Data")
+
 
 #original 2023 vs imputed 2023
 ks.test(original_23_long$Original_Data, imputed_23_long$Imputed_Data)
@@ -518,8 +403,7 @@ ks.test(original_23_long$Original_Data, original_24_long$Original_Data)
 #imputed 2023 vs imputed 2024
 ks.test(imputed_23_long$Imputed_Data, imputed_24_long$Imputed_Data)
 
-pdf("/Users/marcinebessire/Desktop/project/QRILC_QQ2.pdf", width = 10, height = 6)
-
+#make QQ plot
 qqplot(original_23_long$Original_Data, imputed_23_long$Imputed_Data,
        main = "Q-Q Plot: Original vs Imputed Data (2023)",
        xlab = "Original Data Quantiles",
@@ -549,13 +433,10 @@ qqplot(imputed_23_long$Imputed_Data, imputed_24_long$Imputed_Data,
        col = "blue", pch = 19)
 abline(0, 1, col = "red", lwd = 2)  
 
-
-dev.off()
-
-
 #save to file 
 path23 <- paste0("/Users/marcinebessire/Desktop/project/QRILC_Imputation23.csv")
 write_csv(imputed_23_long, path23)
 
 path24 <- paste0("/Users/marcinebessire/Desktop/project/QRILC_Imputation24.csv")
 write_csv(imputed_24_long, path24)
+
