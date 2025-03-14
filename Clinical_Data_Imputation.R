@@ -20,6 +20,54 @@ FAO_25pct <- read.csv("/Users/marcinebessire/Desktop/project/FAO_25pct.csv", che
 FAO_30pct <- read.csv("/Users/marcinebessire/Desktop/project/FAO_30pct.csv", check.names = FALSE)
 FAO_40pct <- read.csv("/Users/marcinebessire/Desktop/project/FAO_40pct.csv", check.names = FALSE)
 
+# ------------------------------------
+# Mean, Median and CV of FAO original
+# ------------------------------------
+
+#numeric data
+FAO_numeric <- FAO_original[, 6:ncol(FAO_original)]
+
+#initialize empty dataset
+summary_stats <- data.frame(Metabolite = colnames(FAO_numeric),
+                            Mean = NA,
+                            Median = NA, 
+                            CV = NA)
+
+#loop through each column and compute statistics
+for (i in seq_along(FAO_numeric)) {
+  col_data <- FAO_numeric[[i]]
+  
+  #compte mean, median and CV 
+  mean_val <- mean(col_data, na.rm = TRUE)
+  median_val <- median(col_data, na.rm = TRUE)
+  cv_val <- (sd(col_data, na.rm = TRUE) / mean_val) * 100 #in percent
+  
+  #store in dataframe
+  summary_stats[i, "Mean"] <- mean_val
+  summary_stats[i, "Median"] <- median_val
+  summary_stats[i, "CV"] <- cv_val
+}
+
+#change to long format for plotting 
+summary_long <- melt(summary_stats, id.vars = "Metabolite", measure.vars = c("Mean", "Median"))
+
+#bar plot mean median
+ggplot(summary_long, aes(x = reorder(Metabolite, value), y = value, fill = variable)) +
+  geom_bar(stat = "identity", position = "dodge") +
+  theme_minimal() +
+  labs(title = "Mean and Median of Metabolites",
+       x = "Metabolite", y = "Value") +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
+  scale_fill_manual(values = c("steelblue", "orange"))
+
+#bar plot CV per metabolite
+ggplot(summary_stats, aes(x = reorder(Metabolite, -CV), y = CV)) +
+  geom_bar(stat = "identity", fill = "magenta", alpha = 0.7) +
+  theme_minimal() +
+  labs(title = "Coefficient of Variation (CV) per Metabolite",
+       x = "Metabolite", y = "CV (%)") +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1))
+
 
 # ------------------------------------
 # Part 0: Visit 1 vs Visit 2 Plot 
@@ -226,10 +274,81 @@ shapiro_test <- function(data){
 #call shapiro function
 #original
 shapiro_original <- shapiro_test(FAO_original) #11/34 are significant
+#knn
 shapiro_KNN5 <- shapiro_test(KNN_5pct) #12 are significant
-KNNshapiro_Halfmin5 <- shapiro_test(Halfmin_5pct) #7 are significant 
+shapiro_KNN10 <- shapiro_test(KNN_10pct) #14 are significant
+shapiro_KNN20 <- shapiro_test(KNN_20pct) #11
+shapiro_KNN25 <- shapiro_test(KNN_25pct) #20
+shapiro_KNN30 <- shapiro_test(KNN_30pct) #16
+shapiro_KNN40 <- shapiro_test(KNN_40pct) #17
+#Half-min
+shapiro_Halfmin5 <- shapiro_test(Halfmin_5pct) #7 are significant 
+shapiro_Halfmin10 <- shapiro_test(Halfmin_10pct) #9 are significant
+shapiro_Halfmin20 <- shapiro_test(Halfmin_20pct) #9 are significant
+shapiro_Halfmin25 <- shapiro_test(Halfmin_25pct) #18 are significant
+shapiro_Halfmin30 <- shapiro_test(Halfmin_30pct) #20 are significant
+shapiro_Halfmin40 <- shapiro_test(Halfmin_40pct) #34 are significant
+#RF
 shaprio_RF5 <- shapiro_test(RF_5pct) #8 are significant 
+shaprio_RF10 <- shapiro_test(RF_10pct) #14 are significant 
+shaprio_RF20 <- shapiro_test(RF_20pct) #7 are significant 
+shaprio_RF25 <- shapiro_test(RF_25pct) #13 are significant 
+shaprio_RF30 <- shapiro_test(RF_30pct) #7 are significant 
+shaprio_RF40 <- shapiro_test(RF_40pct) #4 are significant 
+#QRILC
 shapiro_QRILC5 <- shapiro_test(QRILC_5pct) #8 are significant
+shapiro_QRILC10 <- shapiro_test(QRILC_10pct) #12 are significant
+shapiro_QRILC20 <- shapiro_test(QRILC_20pct) #9 are significant
+shapiro_QRILC25 <- shapiro_test(QRILC_25pct) #13 are significant
+shapiro_QRILC30 <- shapiro_test(QRILC_30pct) #12 are significant
+shapiro_QRILC40 <- shapiro_test(QRILC_40pct) #8 are significant
+
+#create dataframe with results
+shapiro_summary <- data.frame(
+  Method = c(
+    rep("Original", 1),
+    rep("KNN", 6),
+    rep("Half-min", 6),
+    rep("RF", 6),
+    rep("QRILC", 6)
+  ),
+  Missingness = c(
+    0, # Original has only one value
+    
+    5, 10, 20, 25, 30, 40,  # KNN
+    5, 10, 20, 25, 30, 40,  # Half-min
+    5, 10, 20, 25, 30, 40,  # RF
+    5, 10, 20, 25, 30, 40   # QRILC
+  ),
+  Non_Normal_Count = c(
+    11, # Original dataset
+    
+    12, 14, 11, 20, 16, 17,  # KNN
+    7, 9, 9, 18, 20, 34,     # Half-min
+    8, 14, 7, 13, 7, 4,      # RF
+    8, 12, 9, 13, 12, 8      # QRILC
+  )
+)
+
+ggplot(shapiro_summary, aes(x = factor(Missingness), y = Non_Normal_Count, fill = Method)) +
+  geom_bar(stat = "identity", position = "dodge") +
+  theme_minimal() +
+  labs(title = "Number of Non-Normally Distributed Metabolites",
+       x = "Missingness Percentage (%)",
+       y = "Count of Non-Normal Metabolites",
+       fill = "Imputation Method") +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+ggplot(shapiro_summary, aes(x = Missingness, y = Non_Normal_Count, color = Method, group = Method)) +
+  geom_line(size = 1) +
+  geom_point(size = 3) +
+  theme_minimal() +
+  labs(title = "Effect of Imputation on Normality of Metabolites",
+       x = "Missingness Percentage (%)",
+       y = "Count of Non-Normal Metabolites",
+       color = "Imputation Method") +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
 
 # ------------------------------------
 # Part 2.2: T-test
@@ -1036,15 +1155,16 @@ plot(fitted(anova_model_mcar), resid(anova_model_mcar),
 
 #perform kruskal-wallis test
 kruskal_test <- kruskal.test(Weighted_NRMSE ~ Imputation_Method, data = nrmse_data)
-
+kruskal_test2 <- kruskal.test(Weighted_NRMSE ~ MCAR_Proportion, data = nrmse_data)
 #show results
-print(kruskal_test) 
+print(kruskal_test)
+print(kruskal_test2) 
 #p-value storngly signficant 
 #chi-square = 98.713 (higher value means larger difference between groups)
 #at least one imputation method significantly differs from the others in terms of NRMSE
 
 # ------------------------------------
-# Part 8: Dunn's Test
+# Part 8: Dunn's Test for each imputation
 # ------------------------------------
 
 #perform Dunn's Test for pairwise comparison (BH correction for multiple testing)
@@ -1061,6 +1181,4 @@ ggplot(nrmse_data, aes(x = Imputation_Method, y = Weighted_NRMSE, fill = Imputat
        x = "Imputation Method",
        y = "Weighted NRMSE") +
   ylim(0,1)
-
-
 
