@@ -199,14 +199,21 @@ shapiro_test <- function(data){
   #select only numeric data
   numeric_data <- data_copy[, 6:ncol(data_copy)]
   
-  #do shapiro test
+  #shapiro test
   shapiro_results <- apply(numeric_data, 2, function(x) shapiro.test(x)$p.value)
   
+  #adjust p-value 
+  adjusted_p_values <- p.adjust(shapiro_results, method = "BH")
+  
   #concert to dataframe
-  shapiro_df <- data.frame(Metabolite = names(shapiro_results), p_value = shapiro_results) 
+  shapiro_df <- data.frame(
+    Metabolite = names(shapiro_results), 
+    p_value = shapiro_results,
+    Adjusted_P_Value = adjusted_p_values
+  ) 
   
   #print how many are significant = if p-value < 0.05 then not normal distribution
-  significant_count <- sum(shapiro_df$p_value < 0.05, na.rm = TRUE)
+  significant_count <- sum(shapiro_df$Adjusted_P_Value < 0.05, na.rm = TRUE)
   cat("\n-------------------------------\n")
   cat("Number of non-normally distributed metabolites:", significant_count, "\n")
   cat("-------------------------------\n")
@@ -218,11 +225,11 @@ shapiro_test <- function(data){
 
 #call shapiro function
 #original
-shapiro_original <- shapiro_test(FAO_original) #16/34 are significant
-shapiro_KNN5 <- shapiro_test(KNN_5pct) #19 are significant
-shapiro_Halfmin5 <- shapiro_test(Halfmin_5pct) #10 are significant 
-shaprio_RF5 <- shapiro_test(RF_5pct) #16 are significant 
-shapiro_QRILC5 <- shapiro_test(QRILC_5pct) #13 are significant
+shapiro_original <- shapiro_test(FAO_original) #11/34 are significant
+shapiro_KNN5 <- shapiro_test(KNN_5pct) #12 are significant
+KNNshapiro_Halfmin5 <- shapiro_test(Halfmin_5pct) #7 are significant 
+shaprio_RF5 <- shapiro_test(RF_5pct) #8 are significant 
+shapiro_QRILC5 <- shapiro_test(QRILC_5pct) #8 are significant
 
 # ------------------------------------
 # Part 2.2: T-test
@@ -277,14 +284,14 @@ t_test_half_min_10pct <- t_test_func(FAO_original, Halfmin_10pct) #0/34
 t_test_half_min_20pct <- t_test_func(FAO_original, Halfmin_20pct) #0/34
 t_test_half_min_25pct <- t_test_func(FAO_original, Halfmin_25pct) #0/34
 t_test_half_min_30pct <- t_test_func(FAO_original, Halfmin_30pct) #0/34
-t_test_half_min_40pct <- t_test_func(FAO_original, Halfmin_40pct) #19/34
+t_test_half_min_40pct <- t_test_func(FAO_original, Halfmin_40pct) #13/34
 #KNN
 t_test_KNN_5pct <- t_test_func(FAO_original, KNN_5pct) #0/34
 t_test_KNN_10pct <- t_test_func(FAO_original, KNN_10pct) #0/34
 t_test_KNN_20pct <- t_test_func(FAO_original, KNN_20pct) #0/34
 t_test_KNN_25pct <- t_test_func(FAO_original, KNN_25pct) #0/34
 t_test_KNN_30pct <- t_test_func(FAO_original, KNN_30pct) #0/34
-t_test_KNN_40pct <- t_test_func(FAO_original, KNN_40pct) #12/34
+t_test_KNN_40pct <- t_test_func(FAO_original, KNN_40pct) #7/34
 #RF
 t_test_RF_5pct <- t_test_func(FAO_original, RF_5pct) #0/34
 t_test_RF_10pct <- t_test_func(FAO_original, RF_10pct) #0/34
@@ -344,23 +351,22 @@ wilcoxon_func <- function(original, imputed) {
   
   
   return(results)
-  
 }
 
 #call wilcoxon function 
 #Halfmin
 wilcox_half_min_5pct <- wilcoxon_func(FAO_original, Halfmin_5pct) #0/34
 wilcox_half_min_10pct <- wilcoxon_func(FAO_original, Halfmin_10pct) #0/34
-wilcox_half_min_20pct <- t_test_func(FAO_original, Halfmin_20pct) #0/34
-wilcox_half_min_25pct <- t_test_func(FAO_original, Halfmin_25pct) #0/34
-wilcox_half_min_30pct <- t_test_func(FAO_original, Halfmin_30pct) #0/34
-wilcox_half_min_40pct <- wilcoxon_func(FAO_original, Halfmin_40pct) #20/34
+wilcox_half_min_20pct <- wilcoxon_func(FAO_original, Halfmin_20pct) #0/34
+wilcox_half_min_25pct <- wilcoxon_func(FAO_original, Halfmin_25pct) #0/34
+wilcox_half_min_30pct <- wilcoxon_func(FAO_original, Halfmin_30pct) #0/34
+wilcox_half_min_40pct <- wilcoxon_func(FAO_original, Halfmin_40pct) #15/34
 #KNN
 wilcox_KNN_5pct <- wilcoxon_func(FAO_original, KNN_5pct) #0/34
 wilcox_KNN_10pct <- wilcoxon_func(FAO_original, KNN_10pct) #0/34
-wilcox_KNN_20pct <- t_test_func(FAO_original, KNN_20pct) #0/34
-wilcox_KNN_25pct <- t_test_func(FAO_original, KNN_25pct) #0/34
-wilcox_KNN_30pct <- t_test_func(FAO_original, KNN_30pct) #0/34
+wilcox_KNN_20pct <- wilcoxon_func(FAO_original, KNN_20pct) #0/34
+wilcox_KNN_25pct <- wilcoxon_func(FAO_original, KNN_25pct) #0/34
+wilcox_KNN_30pct <- wilcoxon_func(FAO_original, KNN_30pct) #0/34
 wilcox_KNN_40pct <- wilcoxon_func(FAO_original, KNN_40pct) #0/34
 #RF
 wilcox_RF_5pct <- wilcoxon_func(FAO_original, RF_5pct) #0/34
@@ -375,7 +381,7 @@ wilcox_QRILC_10pct <- wilcoxon_func(FAO_original, QRILC_10pct) #0/34
 wilcox_QRILC_20pct <- wilcoxon_func(FAO_original, QRILC_20pct) #0/34
 wilcox_QRILC_25pct <- wilcoxon_func(FAO_original, QRILC_25pct) #0/34
 wilcox_QRILC_30pct <- wilcoxon_func(FAO_original, QRILC_30pct) #0/34
-wilcox_QRILC_40pct <- wilcoxon_func(FAO_original, QRILC_40pct) #9/34
+wilcox_QRILC_40pct <- wilcoxon_func(FAO_original, QRILC_40pct) #0/34
 
 # ------------------------------------
 # Part 2.4: Wilcoxon and T-test for Visit 1 vs 2
@@ -449,38 +455,81 @@ visit_statistical_tests <- function(data) {
   return(results)
 }
 
-
 #call function to compare Visit 1 vs. Visit 2
 #original 
 visit_original_res <- visit_statistical_tests(FAO_original)  #18/34 W and 16/34 T
 #Halfmin
-visit_Halfmin5pct_res <- visit_statistical_tests(Halfmin_5pct) #14/34 W and 12/34 T
-visit_Halfmin10pct_res <- visit_statistical_tests(Halfmin_10pct) #0/34 W and 6/34 T
-visit_Halfmin20pct_res <- visit_statistical_tests(Halfmin_20pct) #0/0 W and 0/0 T
-visit_Halfmin25pct_res <- visit_statistical_tests(Halfmin_25pct) #0/0 W and 0/3 T
-visit_Halfmin30pct_res <- visit_statistical_tests(Halfmin_30pct) #0/0 W and 0/0 T
-visit_Halfmin40pct_res <- visit_statistical_tests(Halfmin_40pct) #0/0 W and 0/2 T
+visit_Halfmin5pct_res <- visit_statistical_tests(Halfmin_5pct) #13/34 W and 15/34 T
+visit_Halfmin10pct_res <- visit_statistical_tests(Halfmin_10pct) #0/34 W and 8/34 T
+visit_Halfmin20pct_res <- visit_statistical_tests(Halfmin_20pct) #0/34 W and 6/34 T
+visit_Halfmin25pct_res <- visit_statistical_tests(Halfmin_25pct) #0/34 W and 5/34 T
+visit_Halfmin30pct_res <- visit_statistical_tests(Halfmin_30pct) #0/34 W and 0/34 T
+visit_Halfmin40pct_res <- visit_statistical_tests(Halfmin_40pct) #0/34 W and 0/34 T
 #KNN
-visit_KNN5pct_res <- visit_statistical_tests(KNN_5pct) #15/34 W 14/34 T
-visit_KNN10pct_res <- visit_statistical_tests(KNN_10pct) #14/34 W 12/34 T
-visit_KNN20pct_res <- visit_statistical_tests(KNN_20pct) #8/34 W 8/34 T
-visit_KNN25pct_res <- visit_statistical_tests(KNN_25pct) #0/34 W 7/34 T
-visit_KNN30pct_res <- visit_statistical_tests(KNN_30pct) #0/34 W 3/34 T
-visit_KNN40pct_res <- visit_statistical_tests(KNN_40pct) #0/34 W 5/34 T
+visit_KNN5pct_res <- visit_statistical_tests(KNN_5pct) #14/34 W 15/34 T
+visit_KNN10pct_res <- visit_statistical_tests(KNN_10pct) #11/34 W 9/34 T
+visit_KNN20pct_res <- visit_statistical_tests(KNN_20pct) #10/34 W 10/34 T
+visit_KNN25pct_res <- visit_statistical_tests(KNN_25pct) #8/34 W 10/34 T
+visit_KNN30pct_res <- visit_statistical_tests(KNN_30pct) #8/34 W 7/34 T
+visit_KNN40pct_res <- visit_statistical_tests(KNN_40pct) #0/34 W 10/34 T
 #RF
-visit_RF5pct_res <- visit_statistical_tests(RF_5pct) #17/34 W 16/34 T
+visit_RF5pct_res <- visit_statistical_tests(RF_5pct) #17/34 W 17/34 T
 visit_RF10pct_res <- visit_statistical_tests(RF_10pct) #18/34 W 17/34 T
-visit_RF20pct_res <- visit_statistical_tests(RF_20pct) #18/34 W 17/34 T
-visit_RF25pct_res <- visit_statistical_tests(RF_25pct) #19/34 W 20/34 T
-visit_RF30pct_res <- visit_statistical_tests(RF_30pct) #14/34 W 14/34 T
-visit_RF40pct_res <- visit_statistical_tests(RF_40pct) #18/34 W 17/34 T
+visit_RF20pct_res <- visit_statistical_tests(RF_20pct) #15/34 W 17/34 T
+visit_RF25pct_res <- visit_statistical_tests(RF_25pct) #17/34 W 17/34 T
+visit_RF30pct_res <- visit_statistical_tests(RF_30pct) #20/34 W 21/34 T
+visit_RF40pct_res <- visit_statistical_tests(RF_40pct) #20/34 W 18/34 T
 #QRILC
-visit_QRILC5pct_res <- visit_statistical_tests(QRILC_5pct) #17/34 W 15/34 T
-visit_QRILC10pct_res <- visit_statistical_tests(QRILC_10pct) #0/34 W 8/34 T
-visit_QRILC20pct_res <- visit_statistical_tests(QRILC_20pct) #0/34 W 5/34 T
-visit_QRILC25pct_res <- visit_statistical_tests(QRILC_25pct) #0/34 W 3/34 T
-visit_QRILC30pct_res <- visit_statistical_tests(QRILC_30pct) #0/34 W 0/34 T
-visit_QRILC40pct_res <- visit_statistical_tests(QRILC_40pct) #0/34 W 1/34 T
+visit_QRILC5pct_res <- visit_statistical_tests(QRILC_5pct) #17/34 W 16/34 T
+visit_QRILC10pct_res <- visit_statistical_tests(QRILC_10pct) #11/34 W 17/34 T
+visit_QRILC20pct_res <- visit_statistical_tests(QRILC_20pct) #0/34 W 7/34 T
+visit_QRILC25pct_res <- visit_statistical_tests(QRILC_25pct) #0/34 W 5/34 T
+visit_QRILC30pct_res <- visit_statistical_tests(QRILC_30pct) #0/34 W 1/34 T
+visit_QRILC40pct_res <- visit_statistical_tests(QRILC_40pct) #0/34 W 0/34 T
+
+#Create data frame for number of significant metabolites
+data <- data.frame(
+  Method = rep(c("Halfmin", "Halfmin", "Halfmin", "Halfmin", "Halfmin", "Halfmin", "Halfmin",
+                 "KNN", "KNN", "KNN", "KNN", "KNN", "KNN", "KNN",
+                 "RF", "RF", "RF", "RF", "RF", "RF", "RF",
+                 "QRILC", "QRILC", "QRILC", "QRILC", "QRILC", "QRILC", "QRILC"), each = 1),
+  Percentage = c("Original", "5%", "10%", "20%", "25%", "30%", "40%",
+                 "Original", "5%", "10%", "20%", "25%", "30%", "40%",
+                 "Original", "5%", "10%", "20%", "25%", "30%", "40%",
+                 "Original", "5%", "10%", "20%", "25%", "30%", "40%"),
+  Wilcoxon = c(18, 13, 0, 0, 0, 0, 0,   
+               18, 14, 11, 10, 8, 8, 0,  
+               18, 17, 18, 15, 17, 20, 20,  
+               18, 17, 11, 0, 0, 0, 0),  
+  TTest = c(16, 15, 8, 6, 5, 0, 0,  
+            16, 15, 9, 10, 10, 7, 10,  
+            16, 17, 17, 17, 17, 21, 18,  
+            16, 16, 17, 7, 5, 1, 0)  
+)
+
+# Convert Percentage to factor to maintain ordering
+data$Percentage <- factor(data$Percentage, levels = c("Original", "5%", "10%", "20%", "25%", "30%", "40%"))
+
+# Reshape data for plotting
+data_long <- data %>% 
+  pivot_longer(cols = c("Wilcoxon", "TTest"), names_to = "Test", values_to = "Significant_Metabolites")
+
+# Create grouped bar plot ensuring "Original" appears first in each facet
+ggplot(data_long, aes(x = Percentage, y = Significant_Metabolites, fill = Test)) +
+  geom_bar(stat = "identity", position = "dodge") +
+  geom_text(aes(label = Significant_Metabolites), 
+            position = position_dodge(width = 0.9), 
+            vjust = -0.3, size = 5) +  # Add exact numbers above bars
+  facet_wrap(~ Method, scales = "free_x", nrow = 2) +  # Ensure each imputation method has its own facet
+  labs(title = "Number of Significant Metabolites (Visit 1 vs Visit 2)",
+       x = "Missingness Percentage",
+       y = "Number of Significant Metabolites",
+       fill = "Statistical Test") +
+  theme_minimal(base_size = 14) +  # Increase font size
+  theme(axis.text.x = element_text(angle = 45, hjust = 1, size = 12),
+        strip.text = element_text(size = 14), # Increase facet label size
+        panel.spacing = unit(2, "lines")) # More spacing between facets
+
 
 # ------------------------------------
 # Part 3: NRMSE
@@ -603,10 +652,10 @@ ggplot(nrmse_data, aes(x = MCAR_Proportion, y = Weighted_NRMSE, fill = Imputatio
 
 
 # ------------------------------------
-# Part 4: Normlaized Mean Difference
+# Part 4: Normalized Mean Difference
 # ------------------------------------
 
-#function to calcualte normalized mean difference
+#function to calculate normalized mean difference
 norm_mean_diff <- function(original, imputed, method, percentage) {
   #numeric columns
   original_numeric <- original[, 6:ncol(original)]
@@ -649,17 +698,126 @@ norm_mean_diff <- function(original, imputed, method, percentage) {
 #call normalized difference function
 #Halfmin
 norm_diff_Halfmin_5pct <- norm_mean_diff(FAO_original, Halfmin_5pct, "Half-min", 5)
+norm_diff_Halfmin_10pct <- norm_mean_diff(FAO_original, Halfmin_10pct, "Half-min", 10)
+norm_diff_Halfmin_20pct <- norm_mean_diff(FAO_original, Halfmin_20pct, "Half-min", 20)
+norm_diff_Halfmin_25pct <- norm_mean_diff(FAO_original, Halfmin_25pct, "Half-min", 25)
 norm_diff_Halfmin_30pct <- norm_mean_diff(FAO_original, Halfmin_30pct, "Half-min", 30)
 norm_diff_Halfmin_40pct <- norm_mean_diff(FAO_original, Halfmin_40pct, "Half-min", 40)
 #KNN
 norm_diff_KNN_5pct <- norm_mean_diff(FAO_original, KNN_5pct, "KNN", 5)
+norm_diff_KNN_10pct <- norm_mean_diff(FAO_original, KNN_10pct, "KNN", 10)
+norm_diff_KNN_20pct <- norm_mean_diff(FAO_original, KNN_20pct, "KNN", 20)
+norm_diff_KNN_25pct <- norm_mean_diff(FAO_original, KNN_25pct, "KNN", 25)
+norm_diff_KNN_30pct <- norm_mean_diff(FAO_original, KNN_30pct, "KNN", 30)
 norm_diff_KNN_40pct <- norm_mean_diff(FAO_original, KNN_40pct, "KNN", 40)
 #RF
 norm_diff_RF_5pct <- norm_mean_diff(FAO_original, RF_5pct, "RF", 5)
+norm_diff_RF_10pct <- norm_mean_diff(FAO_original, RF_10pct, "RF", 10)
+norm_diff_RF_20pct <- norm_mean_diff(FAO_original, RF_20pct, "RF", 20)
+norm_diff_RF_25pct <- norm_mean_diff(FAO_original, RF_25pct, "RF", 25)
+norm_diff_RF_30pct <- norm_mean_diff(FAO_original, RF_30pct, "RF", 30)
 norm_diff_RF_40pct <- norm_mean_diff(FAO_original, RF_40pct, "RF", 40)
 #QRILC
 norm_diff_QRILC_5pct <- norm_mean_diff(FAO_original, QRILC_5pct, "QRILC", 5)
+norm_diff_QRILC_10pct <- norm_mean_diff(FAO_original, QRILC_10pct, "QRILC", 10)
+norm_diff_QRILC_20pct <- norm_mean_diff(FAO_original, QRILC_20pct, "QRILC", 20)
+norm_diff_QRILC_25pct <- norm_mean_diff(FAO_original, QRILC_25pct, "QRILC", 25)
+norm_diff_QRILC_30pct <- norm_mean_diff(FAO_original, QRILC_30pct, "QRILC", 30)
 norm_diff_QRILC_40pct <- norm_mean_diff(FAO_original, QRILC_40pct, "QRILC", 40)
+
+# ------------------------------------
+# Part 4.1: Plot of all NMD per Imputation Method
+# ------------------------------------
+
+#function to compute and return normalized mean difference data
+norm_mean_diff_data <- function(original, imputed, method, percentage) {
+  #numeric columns
+  original_numeric <- original[, 6:ncol(original)]
+  imputed_numeric <- imputed[, 6:ncol(imputed)]
+  
+  #compute mean before imputation
+  mean_before <- original_numeric %>%
+    summarise(across(everything(), mean, na.rm = TRUE)) %>%
+    pivot_longer(cols = everything(), names_to = "Metabolite", values_to = "Mean_Before")
+  
+  #compute mean after imputation
+  mean_after <- imputed_numeric %>%
+    summarise(across(everything(), mean, na.rm = TRUE)) %>%
+    pivot_longer(cols = everything(), names_to = "Metabolite", values_to = "Mean_After")
+  
+  #merge before and after mean values
+  mean_comparison <- left_join(mean_before, mean_after, by = "Metabolite")
+  
+  #compute normalized difference: (Mean_After - Mean_Before) / Mean_Before
+  mean_comparison <- mean_comparison %>%
+    mutate(Normalized_Difference = (Mean_After - Mean_Before) / Mean_Before,
+           Method = method,
+           Percentage = paste0(percentage, "%"))
+  
+  return(mean_comparison)
+}
+
+#combine all data for each imputation method
+halfmin_data <- bind_rows(
+  norm_mean_diff_data(FAO_original, Halfmin_5pct, "Half-min", 5),
+  norm_mean_diff_data(FAO_original, Halfmin_10pct, "Half-min", 10),
+  norm_mean_diff_data(FAO_original, Halfmin_20pct, "Half-min", 20),
+  norm_mean_diff_data(FAO_original, Halfmin_25pct, "Half-min", 25),
+  norm_mean_diff_data(FAO_original, Halfmin_30pct, "Half-min", 30),
+  norm_mean_diff_data(FAO_original, Halfmin_40pct, "Half-min", 40)
+)
+
+knn_data <- bind_rows(
+  norm_mean_diff_data(FAO_original, KNN_5pct, "KNN", 5),
+  norm_mean_diff_data(FAO_original, KNN_10pct, "KNN", 10),
+  norm_mean_diff_data(FAO_original, KNN_20pct, "KNN", 20),
+  norm_mean_diff_data(FAO_original, KNN_25pct, "KNN", 25),
+  norm_mean_diff_data(FAO_original, KNN_30pct, "KNN", 30),
+  norm_mean_diff_data(FAO_original, KNN_40pct, "KNN", 40)
+)
+
+rf_data <- bind_rows(
+  norm_mean_diff_data(FAO_original, RF_5pct, "RF", 5),
+  norm_mean_diff_data(FAO_original, RF_10pct, "RF", 10),
+  norm_mean_diff_data(FAO_original, RF_20pct, "RF", 20),
+  norm_mean_diff_data(FAO_original, RF_25pct, "RF", 25),
+  norm_mean_diff_data(FAO_original, RF_30pct, "RF", 30),
+  norm_mean_diff_data(FAO_original, RF_40pct, "RF", 40)
+)
+
+qrilc_data <- bind_rows(
+  norm_mean_diff_data(FAO_original, QRILC_5pct, "QRILC", 5),
+  norm_mean_diff_data(FAO_original, QRILC_10pct, "QRILC", 10),
+  norm_mean_diff_data(FAO_original, QRILC_20pct, "QRILC", 20),
+  norm_mean_diff_data(FAO_original, QRILC_25pct, "QRILC", 25),
+  norm_mean_diff_data(FAO_original, QRILC_30pct, "QRILC", 30),
+  norm_mean_diff_data(FAO_original, QRILC_40pct, "QRILC", 40)
+)
+
+#function to plot density for each method
+plot_density <- function(data, method) {
+  ggplot(data, aes(x = Normalized_Difference, fill = Percentage, color = Percentage)) +
+    geom_density(alpha = 0.3) +
+    theme_minimal() +
+    labs(title = paste("Normalized Difference for", method, "Imputation"),
+         x = "Normalized Difference",
+         y = "Density") +
+    xlim(-0.2, 0.2) +
+    geom_vline(xintercept = 0, linetype = "dashed", color = "red") +
+    theme(legend.title = element_blank(), legend.position = "right")
+}
+
+#generate plots
+plot_halfmin <- plot_density(halfmin_data, "Half-min")
+plot_knn <- plot_density(knn_data, "KNN")
+plot_rf <- plot_density(rf_data, "RF")
+plot_qrilc <- plot_density(qrilc_data, "QRILC")
+
+#display plots
+print(plot_halfmin)
+print(plot_knn)
+print(plot_rf)
+print(plot_qrilc)
 
 
 # ------------------------------------
@@ -713,15 +871,31 @@ plot_distribution <- function(original, imputed, method, percentage) {
 #call function to plot distirbution
 #Halfmin
 dist_Halfmin_5pct <- plot_distribution(FAO_original, Halfmin_5pct, "Half-min", 5)
+dist_Halfmin_10pct <- plot_distribution(FAO_original, Halfmin_10pct, "Half-min", 10)
+dist_Halfmin_20pct <- plot_distribution(FAO_original, Halfmin_20pct, "Half-min", 20)
+dist_Halfmin_25pct <- plot_distribution(FAO_original, Halfmin_25pct, "Half-min", 25)
+dist_Halfmin_30pct <- plot_distribution(FAO_original, Halfmin_30pct, "Half-min", 30)
 dist_Halfmin_40pct <- plot_distribution(FAO_original, Halfmin_40pct, "Half-min", 40)
 #KNN
 dist_KNN_5pct <- plot_distribution(FAO_original, KNN_5pct, "KNN", 5)
+dist_KNN_10pct <- plot_distribution(FAO_original, KNN_10pct, "KNN", 10)
+dist_KNN_20pct <- plot_distribution(FAO_original, KNN_20pct, "KNN", 20)
+dist_KNN_25pct <- plot_distribution(FAO_original, KNN_25pct, "KNN", 25)
+dist_KNN_30pct <- plot_distribution(FAO_original, KNN_30pct, "KNN", 30)
 dist_KNN_40pct <- plot_distribution(FAO_original, KNN_40pct, "KNN", 40)
 #RF
 dist_RF_5pct <- plot_distribution(FAO_original, RF_5pct, "RF", 5)
+dist_RF_10pct <- plot_distribution(FAO_original, RF_10pct, "RF", 10)
+dist_RF_20pct <- plot_distribution(FAO_original, RF_20pct, "RF", 20)
+dist_RF_25pct <- plot_distribution(FAO_original, RF_25pct, "RF", 25)
+dist_RF_30pct <- plot_distribution(FAO_original, RF_30pct, "RF", 30)
 dist_RF_40pct <- plot_distribution(FAO_original, RF_40pct, "RF", 40)
 #QRILC
 dist_QRILC_5pct <- plot_distribution(FAO_original, QRILC_5pct, "QRILC", 5)
+dist_QRILC_10pct <- plot_distribution(FAO_original, QRILC_10pct, "QRILC", 10)
+dist_QRILC_20pct <- plot_distribution(FAO_original, QRILC_20pct, "QRILC", 20)
+dist_QRILC_25pct <- plot_distribution(FAO_original, QRILC_25pct, "QRILC", 25)
+dist_QRILC_30pct <- plot_distribution(FAO_original, QRILC_30pct, "QRILC", 30)
 dist_QRILC_40pct <- plot_distribution(FAO_original, QRILC_40pct, "QRILC", 40)
 
 # ------------------------------------
@@ -887,5 +1061,6 @@ ggplot(nrmse_data, aes(x = Imputation_Method, y = Weighted_NRMSE, fill = Imputat
        x = "Imputation Method",
        y = "Weighted NRMSE") +
   ylim(0,1)
+
 
 

@@ -4,9 +4,40 @@ library(tidyverse)
 library(ggplot2)
 library(tidyr)
 library(impute) #for knn
+library(reshape2) #for melt
 
 #load FAO data
 FAO_data <- read.csv("/Users/marcinebessire/Desktop/project/FAO_data.csv", check.names = FALSE)
+
+# ---------------------------------
+# Part 0: Plot Whole Distribution
+# ---------------------------------
+
+# Function to plot the overall distribution of all numeric values
+plot_overall_distribution <- function(original) {
+  # Select numeric columns
+  numeric_original <- original[, 6:ncol(original)]
+  
+  # Convert the entire numeric data into a single vector
+  all_values <- unlist(numeric_original, use.names = FALSE)
+  
+  # Create a data frame for plotting
+  df_all_values <- data.frame(Value = all_values)
+  
+  # Plot the overall density distribution
+  plot <- ggplot(df_all_values, aes(x = Value)) +
+    geom_density(fill = "gray", alpha = 0.5, color = "black") +
+    theme_minimal() +
+    labs(title = "Overall Distribution of FAO Data",
+         x = "Measurement",
+         y = "Density") +
+    xlim(-100,500)
+  
+  print(plot)
+}
+
+# Example usage
+plot_overall_distribution(FAO_data)
 
 
 # ---------------------------------
