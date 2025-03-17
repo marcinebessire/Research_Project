@@ -73,7 +73,7 @@ ggplot(summary_stats, aes(x = reorder(Metabolite, -CV), y = CV)) +
 # Part 0: Visit 1 vs Visit 2 Plot 
 # ------------------------------------
 
-#reshape data into long format (use melt to convert dataframe from wide into logn format)
+#reshape data into long format (use melt to convert dataframe from wide into long format)
 FAO_long <- melt(FAO_original, id.vars = c("ID", "Participant", "MonthDay", "Year", "Visit"),
                  variable.name = "Metabolite", value.name = "Value")
 
@@ -338,17 +338,21 @@ ggplot(shapiro_summary, aes(x = factor(Missingness), y = Non_Normal_Count, fill 
        y = "Count of Non-Normal Metabolites",
        fill = "Imputation Method") +
   theme(axis.text.x = element_text(angle = 45, hjust = 1))
-
+# Extract the Non_Normal_Count for the "Original" method
+original_non_normal <- shapiro_summary %>%
+  filter(Method == "Original") %>%
+  pull(Non_Normal_Count)
 
 ggplot(shapiro_summary, aes(x = Missingness, y = Non_Normal_Count, color = Method, group = Method)) +
   geom_line(size = 1) +
   geom_point(size = 3) +
+  geom_hline(yintercept = original_non_normal, linetype = "dashed", color = "black", size = 1) + # Dashed reference line
   theme_minimal() +
   labs(title = "Effect of Imputation on Normality of Metabolites",
        x = "Missingness Percentage (%)",
        y = "Count of Non-Normal Metabolites",
        color = "Imputation Method") +
-  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) 
 
 
 # ------------------------------------
@@ -1153,6 +1157,9 @@ plot(fitted(anova_model_mcar), resid(anova_model_mcar),
      xlab = "Fitted Values (Predicted by ANOVA Model)", 
      ylab = "Residuals (Errors)")
 
+#run shapiro test on anova model
+shapiro.test(resid(anova_model_mcar))
+
 # ------------------------------------
 # Part 7: Kruskal-Wallis
 # ------------------------------------
@@ -1173,6 +1180,7 @@ print(kruskal_test2)
 
 #perform Dunn's Test for pairwise comparison (BH correction for multiple testing)
 dunn_test <- dunnTest(Weighted_NRMSE ~ Imputation_Method, data = nrmse_data, method = "bh")
+dunn_test2 <- dunnTest(Weighted_NRMSE ~ MCAR_Proportion, data = nrmse_data, method = "bh") #for percentage of mcar
 
 #print the results
 print(dunn_test)
@@ -1181,8 +1189,9 @@ print(dunn_test)
 ggplot(nrmse_data, aes(x = Imputation_Method, y = Weighted_NRMSE, fill = Imputation_Method)) +
   geom_boxplot() +
   theme_minimal() +
-  labs(title = "Pairwise Comparisons of Imputation Methods (Dunn's Test)",
+  labs(title = "Pairwise Comparisons of Imputation Methods",
        x = "Imputation Method",
        y = "Weighted NRMSE") +
   ylim(0,1)
+
 
