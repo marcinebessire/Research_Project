@@ -84,38 +84,116 @@ plot_original_distribution(FAO_data)
 # Part 2: Generate MCAR in data set
 # MCAR because randomly assign MV to each column without any dependency on the observed or unobserved data
 # ---------------------------------
-MCAR_manipulation <- function(data, missing_percentage){
-  #copy dataset (avoid overwriting)
+
+
+# #call function to generate MCAR
+# FAO_data_5pct <- MCAR_manipulation(FAO_data, 0.05) #5% missing values
+# FAO_data_10pct <- MCAR_manipulation(FAO_data, 0.1) #10% missing values
+# FAO_data_20pct <- MCAR_manipulation(FAO_data, 0.2) #20% missing values
+# FAO_data_25pct <- MCAR_manipulation(FAO_data, 0.25) #25% missing values
+# FAO_data_30pct <- MCAR_manipulation(FAO_data, 0.3) #30% missing values
+# FAO_data_40pct <- MCAR_manipulation(FAO_data, 0.4) #40% missing values
+
+#function to introduce MCAR missing values with balance across Visit 1 and Visit 2
+MCAR_manipulation_balanced <- function(data, missing_percentage){
+  #copy dataset to avoid modifying the original
   data_copy <- data
   
-  #iterate through each column
+  #get the Visit 1 and Visit 2 indices
+  visit1_indices <- which(data_copy$Visit == "Visit 1")
+  visit2_indices <- which(data_copy$Visit == "Visit 2")
+  
+  #iterate through each numeric column
   for (col in 6:ncol(data_copy)) {
-    #calculate number of missing value per column
-    num_mv <- round(nrow(data_copy) * missing_percentage)
+    #get number of missing values to introduce (rounded down to ensure pairing)
+    num_mv_total <- round(nrow(data_copy) * missing_percentage)
+    num_mv <- floor(num_mv_total / 2)  #even split between Visit 1 and Visit 2
     
-    if (num_mv > 0) {
-      #select random rows
-      missing_indices <- sample(1:nrow(data_copy), num_mv, replace = FALSE)
-      data_copy[missing_indices, col] <- NA #set to NA 
+    if (num_mv > 0 && length(visit1_indices) > 0 && length(visit2_indices) > 0) {
+      #randomly choose indices for missing values in each visit group
+      missing_indices_v1 <- sample(visit1_indices, num_mv, replace = FALSE)
+      missing_indices_v2 <- sample(visit2_indices, num_mv, replace = FALSE)
+      
+      #set selected values to NA
+      data_copy[missing_indices_v1, col] <- NA
+      data_copy[missing_indices_v2, col] <- NA
     }
   }
   
   return(data_copy)
 }
 
-#call function to generate MCAR
-FAO_data_5pct <- MCAR_manipulation(FAO_data, 0.05) #5% missing values
-FAO_data_10pct <- MCAR_manipulation(FAO_data, 0.1) #10% missing values
-FAO_data_20pct <- MCAR_manipulation(FAO_data, 0.2) #20% missing values
-FAO_data_25pct <- MCAR_manipulation(FAO_data, 0.25) #25% missing values
-FAO_data_30pct <- MCAR_manipulation(FAO_data, 0.3) #30% missing values
-FAO_data_40pct <- MCAR_manipulation(FAO_data, 0.4) #40% missing values
+#call function to generate MCAR (evenly between visit 1 and visit 2)
+FAO_data_10pct <- MCAR_manipulation_balanced(FAO_data, 0.1) #10% missing values
+FAO_data_20pct <- MCAR_manipulation_balanced(FAO_data, 0.2) #20% missing values
+FAO_data_30pct <- MCAR_manipulation_balanced(FAO_data, 0.3) #30% missing values
+FAO_data_40pct <- MCAR_manipulation_balanced(FAO_data, 0.4) #40% missing values
+
 
 #save them to csv file 
-write_csv(FAO_data_5pct, "/Users/marcinebessire/Desktop/project/FAO_5pct.csv")
 write_csv(FAO_data_10pct, "/Users/marcinebessire/Desktop/project/FAO_10pct.csv")
 write_csv(FAO_data_20pct, "/Users/marcinebessire/Desktop/project/FAO_20pct.csv")
-write_csv(FAO_data_25pct, "/Users/marcinebessire/Desktop/project/FAO_25pct.csv")
 write_csv(FAO_data_30pct, "/Users/marcinebessire/Desktop/project/FAO_30pct.csv")
 write_csv(FAO_data_40pct, "/Users/marcinebessire/Desktop/project/FAO_40pct.csv")
+
+
+# # ---------- do not do it like this --------
+# # Function to introduce MCAR missing values with balance across Visit 1 and Visit 2
+# MCAR_manipulation_balanced2 <- function(data, missing_percentage){
+#   # Copy dataset to avoid modifying the original
+#   data_copy <- data
+#   
+#   # Get Visit 1 and Visit 2 row indices
+#   visit1_indices <- which(data_copy$Visit == "Visit 1")
+#   visit2_indices <- which(data_copy$Visit == "Visit 2")
+#   
+#   # Iterate through each numeric column (assuming from 6th column onwards)
+#   for (col in 6:ncol(data_copy)) {
+#     # Compute total number of missing values to introduce
+#     num_mv_total <- max(1, round(nrow(data_copy) * missing_percentage))  # Ensure at least 1 missing value
+#     
+#     # Split evenly
+#     num_mv <- num_mv_total %/% 2  # Integer division to get pairs
+#     
+#     # Determine if there's an extra missing value (for odd cases)
+#     extra_mv <- num_mv_total %% 2  # 1 if odd, 0 if even
+#     
+#     missing_indices_v1 <- c()
+#     missing_indices_v2 <- c()
+#     
+#     if (num_mv > 0 && length(visit1_indices) > 0 && length(visit2_indices) > 0) {
+#       # Assign missing values evenly
+#       missing_indices_v1 <- sample(visit1_indices, min(num_mv, length(visit1_indices)), replace = FALSE)
+#       missing_indices_v2 <- sample(visit2_indices, min(num_mv, length(visit2_indices)), replace = FALSE)
+#     }
+#     
+#     # If there's an extra missing value, randomly assign it
+#     if (extra_mv == 1) {
+#       extra_visit <- sample(c("Visit 1", "Visit 2"), 1)  # Choose where to place extra NA
+#       if (extra_visit == "Visit 1" && length(visit1_indices) > length(missing_indices_v1)) {
+#         extra_index <- sample(setdiff(visit1_indices, missing_indices_v1), 1)
+#         missing_indices_v1 <- c(missing_indices_v1, extra_index)
+#       } else if (length(visit2_indices) > length(missing_indices_v2)) {
+#         extra_index <- sample(setdiff(visit2_indices, missing_indices_v2), 1)
+#         missing_indices_v2 <- c(missing_indices_v2, extra_index)
+#       }
+#     }
+#     
+#     # Set selected values to NA
+#     data_copy[missing_indices_v1, col] <- NA
+#     data_copy[missing_indices_v2, col] <- NA
+#   }
+#   
+#   return(data_copy)
+# }
+# 
+# 
+# 
+# #call function to generate MCAR (evenly between visit 1 and visit 2)
+# FAO_data_5pct2 <- MCAR_manipulation_balanced2(FAO_data, 0.05) #5% missing values
+# FAO_data_10pct2 <- MCAR_manipulation_balanced2(FAO_data, 0.1) #10% missing values
+# FAO_data_20pct2 <- MCAR_manipulation_balanced2(FAO_data, 0.2) #20% missing values
+# FAO_data_25pct2 <- MCAR_manipulation_balanced2(FAO_data, 0.25) #25% missing values
+# FAO_data_30pct2 <- MCAR_manipulation_balanced2(FAO_data, 0.3) #30% missing values
+# FAO_data_40pct2 <- MCAR_manipulation_balanced2(FAO_data, 0.4) #40% missing values
 
