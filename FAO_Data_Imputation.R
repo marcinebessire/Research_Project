@@ -339,6 +339,7 @@ ggplot(shapiro_summary, aes(x = factor(Missingness), y = Non_Normal_Count, fill 
        fill = "Imputation Method") +
   theme(axis.text.x = element_text(angle = 45, hjust = 1))
 
+
 ggplot(shapiro_summary, aes(x = Missingness, y = Non_Normal_Count, color = Method, group = Method)) +
   geom_line(size = 1) +
   geom_point(size = 3) +
@@ -1063,11 +1064,14 @@ plot_whole_distribution <- function(original, imputed, method, percentage) {
          x = "Value",
          y = "Density") +
     geom_vline(data = mean_data %>% filter(Data == "Original Data"),
-               aes(xintercept = mean_value), color = "blue", linewidth = 1, linetype = "dashed") + 
+               aes(xintercept = mean_value, color = "Original Mean"), linewidth = 0.5, linetype = "dashed") + 
     geom_vline(data = mean_data %>% filter(Data == "Imputed Data"),
-               aes(xintercept = mean_value), color = "red", linewidth = 1, linetype = "dashed") +
+               aes(xintercept = mean_value, color = "Imputed Mean"), linewidth = 0.5, linetype = "dashed") +
+    scale_color_manual(name = "Mean Values", 
+                       values = c("Original Mean" = "blue", "Imputed Mean" = "red")) + 
     xlim(-100, 400) + 
     theme(legend.position = "bottom")
+    
   
   print(plot)
   return(combined_data)

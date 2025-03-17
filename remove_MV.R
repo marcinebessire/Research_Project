@@ -16,7 +16,7 @@ file_path24cv <- "/Users/marcinebessire/Desktop/project/CV_Filtered_Data_2024.cs
 #file_path24 <- "/Users/marcinebessire/Desktop/project/cleaned_data_2024.csv"
 #cut_file_path24 <- "/Users/marcinebessire/Desktop/project/cut_cleaned_data_2024.csv"
 
-#function to remove columns with >80% of NA
+#function to remove columns with >20% of NA
 remove_MV <- function(filtered_data, year){
   #load filtered data
   data_df <- read.csv(filtered_data, check.names = FALSE)
