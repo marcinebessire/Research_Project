@@ -9,6 +9,8 @@ library(reshape2) #for melt
 library(FSA) #for Dunns test
 library(gtools) #for mixedsort
 library(forcats) #for factor ordering
+library(broom)
+library(patchwork)
 
 
 #load original data
@@ -143,11 +145,11 @@ ggplot(FAO_long, aes(x = Visit, y = Value, fill = Visit)) +
        x = "Visit",
        y = "Metabolite Measurement") +
   theme(legend.position = "none",
-        axis.text.x = element_text(angle = 45, hjust = 1, size = 14),  # Increase x-axis text size
-        axis.text.y = element_text(size = 14),  # Increase y-axis text size
-        axis.title = element_text(size = 14),  # Increase axis title size
-        strip.text = element_text(size = 14),  # Increase facet label size
-        plot.title = element_text(size = 16, face = "bold"))  # Increase title size
+        axis.text.x = element_text(angle = 45, hjust = 1, size = 16),  # Increase x-axis text size
+        axis.text.y = element_text(size = 16),  # Increase y-axis text size
+        axis.title = element_text(size = 16),  # Increase axis title size
+        strip.text = element_text(size = 16),  # Increase facet label size
+        plot.title = element_text(size = 18, face = "bold"))  # Increase title size
 
 
 # ------------------------------------
@@ -313,16 +315,25 @@ QRILC_40pct_2 <- QRILC_impuation(FAO_40pct_2)
 
 #make funciton to merge and order dataframes for each Imputation
 merge_and_order <- function(data1, data2) {
-  #combine datasets
+  # Combine datasets
   merged_data <- rbind(data1, data2)
-
-  #convert Participant to a properly sorted factor
+  
+  # Convert Participant to a properly sorted factor
   merged_data$Participant <- factor(merged_data$Participant,
                                     levels = mixedsort(unique(merged_data$Participant)))
-
-  #order by Participant and MonthDay
-  merged_data <- merged_data[order(merged_data$Participant, merged_data$MonthDay), ]
-
+  
+  # Create a proper date column for ordering
+  merged_data$FullDate <- as.Date(paste(merged_data$Year, merged_data$MonthDay, sep = "-"), format = "%Y-%m/%d")
+  
+  # Order by Participant and FullDate (which correctly sorts by Year first, then MonthDay)
+  merged_data <- merged_data[order(merged_data$Participant, merged_data$FullDate), ]
+  
+  # Remove temporary FullDate column (optional)
+  merged_data$FullDate <- NULL
+  
+  # Reset row numbering to ensure sequential indices
+  row.names(merged_data) <- NULL  
+  
   return(merged_data)
 }
 
@@ -396,51 +407,51 @@ shapiro_original2 <- shapiro_test(visit2_data) #1/34
 
 #knn
 #visit 1
-shapiro1_KNN10 <- shapiro_test(KNN_10pct_1) #9 are significant
-shapiro1_KNN20 <- shapiro_test(KNN_20pct_1) #8 are significant
-shapiro1_KNN30 <- shapiro_test(KNN_30pct_1) #9 are significant
-shapiro1_KNN40 <- shapiro_test(KNN_40pct_1) #9 are significant
+shapiro1_KNN10 <- shapiro_test(KNN_10pct_1) #8 are significant
+shapiro1_KNN20 <- shapiro_test(KNN_20pct_1) #9 are significant
+shapiro1_KNN30 <- shapiro_test(KNN_30pct_1) #7 are significant
+shapiro1_KNN40 <- shapiro_test(KNN_40pct_1) #7 are significant
 #visit 2
-shapiro2_KNN10 <- shapiro_test(KNN_10pct_2) #4 are significant
-shapiro2_KNN20 <- shapiro_test(KNN_20pct_2) #6 are significant
-shapiro2_KNN30 <- shapiro_test(KNN_30pct_2) #5 are significant
-shapiro2_KNN40 <- shapiro_test(KNN_40pct_2) #6 are significant
+shapiro2_KNN10 <- shapiro_test(KNN_10pct_2) #6 are significant
+shapiro2_KNN20 <- shapiro_test(KNN_20pct_2) #8 are significant
+shapiro2_KNN30 <- shapiro_test(KNN_30pct_2) #10 are significant
+shapiro2_KNN40 <- shapiro_test(KNN_40pct_2) #3 are significant
 
 #Half-min
 #visit 1
 shapiro1_Halfmin10 <- shapiro_test(Halfmin_10pct_1) #1 are significant
-shapiro1_Halfmin20 <- shapiro_test(Halfmin_20pct_1) #1 are significant
-shapiro1_Halfmin30 <- shapiro_test(Halfmin_30pct_1) #2 are significant
-shapiro1_Halfmin40 <- shapiro_test(Halfmin_40pct_1) #1 are significant
+shapiro1_Halfmin20 <- shapiro_test(Halfmin_20pct_1) #2 are significant
+shapiro1_Halfmin30 <- shapiro_test(Halfmin_30pct_1) #1 are significant
+shapiro1_Halfmin40 <- shapiro_test(Halfmin_40pct_1) #0 are significant
 #visit 2
-shapiro2_Halfmin10 <- shapiro_test(Halfmin_10pct_2) #0 are significant
+shapiro2_Halfmin10 <- shapiro_test(Halfmin_10pct_2) #1 are significant
 shapiro2_Halfmin20 <- shapiro_test(Halfmin_20pct_2) #0 are significant
 shapiro2_Halfmin30 <- shapiro_test(Halfmin_30pct_2) #1 are significant
-shapiro2_Halfmin40 <- shapiro_test(Halfmin_40pct_2) #2 are significant
+shapiro2_Halfmin40 <- shapiro_test(Halfmin_40pct_2) #3 are significant
 
 #RF
 #visit 1
-shaprio1_RF10 <- shapiro_test(RF_10pct_1) #3 are significant 
-shaprio1_RF20 <- shapiro_test(RF_20pct_1) #2 are significant 
-shaprio1_RF30 <- shapiro_test(RF_30pct_1) #1 are significant 
-shaprio1_RF40 <- shapiro_test(RF_40pct_1) #4 are significant 
+shaprio1_RF10 <- shapiro_test(RF_10pct_1) #2 are significant 
+shaprio1_RF20 <- shapiro_test(RF_20pct_1) #1 are significant 
+shaprio1_RF30 <- shapiro_test(RF_30pct_1) #2 are significant 
+shaprio1_RF40 <- shapiro_test(RF_40pct_1) #1 are significant 
 #visit 2
-shaprio2_RF10 <- shapiro_test(RF_10pct_2) #0 are significant 
-shaprio2_RF20 <- shapiro_test(RF_20pct_2) #0 are significant 
-shaprio2_RF30 <- shapiro_test(RF_30pct_2) #3 are significant 
-shaprio2_RF40 <- shapiro_test(RF_40pct_2) #3 are significant
+shaprio2_RF10 <- shapiro_test(RF_10pct_2) #1 are significant 
+shaprio2_RF20 <- shapiro_test(RF_20pct_2) #2 are significant 
+shaprio2_RF30 <- shapiro_test(RF_30pct_2) #4 are significant 
+shaprio2_RF40 <- shapiro_test(RF_40pct_2) #2 are significant
 
 #QRILC
 #visit1
-shapiro1_QRILC10 <- shapiro_test(QRILC_10pct_1) #2 are significant
-shapiro1_QRILC20 <- shapiro_test(QRILC_20pct_1) #2 are significant
-shapiro1_QRILC30 <- shapiro_test(QRILC_30pct_1) #2 are significant
-shapiro1_QRILC40 <- shapiro_test(QRILC_40pct_1) #1 are significant
+shapiro1_QRILC10 <- shapiro_test(QRILC_10pct_1) #1 are significant
+shapiro1_QRILC20 <- shapiro_test(QRILC_20pct_1) #1 are significant
+shapiro1_QRILC30 <- shapiro_test(QRILC_30pct_1) #1 are significant
+shapiro1_QRILC40 <- shapiro_test(QRILC_40pct_1) #0 are significant
 #visit2
 shapiro2_QRILC10 <- shapiro_test(QRILC_10pct_2) #1 are significant
-shapiro2_QRILC20 <- shapiro_test(QRILC_20pct_2) #0 are significant
-shapiro2_QRILC30 <- shapiro_test(QRILC_30pct_2) #2 are significant
-shapiro2_QRILC40 <- shapiro_test(QRILC_40pct_2) #4 are significant
+shapiro2_QRILC20 <- shapiro_test(QRILC_20pct_2) #2 are significant
+shapiro2_QRILC30 <- shapiro_test(QRILC_30pct_2) #5 are significant
+shapiro2_QRILC40 <- shapiro_test(QRILC_40pct_2) #3 are significant
 
 #Visit 1
 #create dataframe with results
@@ -463,10 +474,10 @@ shapiro_summary1 <- data.frame(
   Non_Normal_Count = c(
     2, # Original dataset
     
-    9, 8, 9, 9,  # KNN
-    1, 1, 2, 1,     # Half-min
-    3, 2, 1, 4,     # RF
-    2, 2, 2, 1     # QRILC
+    8, 9, 7, 7,  # KNN
+    1, 2, 1, 0,     # Half-min
+    2, 1, 2, 1,     # RF
+    1, 1, 1, 0     # QRILC
   )
 )
 
@@ -487,13 +498,23 @@ original_non_normal1 <- shapiro_summary1 %>%
 ggplot(shapiro_summary1, aes(x = Missingness, y = Non_Normal_Count, color = Method, group = Method)) +
   geom_line(size = 1) +
   geom_point(size = 3) +
-  geom_hline(yintercept = original_non_normal1, linetype = "dashed", color = "black", size = 1) + # Dashed reference line
-  theme_minimal() +
-  labs(title = "Effect of Imputation on Normality of Metabolites (Visit 1)",
-       x = "Missingness Percentage (%)",
-       y = "Count of Non-Normal Metabolites",
-       color = "Imputation Method") +
-  theme(axis.text.x = element_text(angle = 45, hjust = 1)) 
+  geom_hline(yintercept = original_non_normal1, linetype = "dashed", color = "lightgreen", size = 1) + # Dashed reference line
+  theme_minimal(base_size = 16) +  # Increase overall font size
+  labs(
+    title = "Effect of Imputation on Normality of Metabolites (Visit 1)",
+    x = "Missingness Percentage (%)",
+    y = "Count of Non-Normal Metabolites",
+    color = "Imputation Method"
+  ) +
+  theme(
+    axis.text.x = element_text(angle = 45, hjust = 1, size = 14, face = "bold"),  # Improve x-axis readability
+    axis.text.y = element_text(size = 14, face = "bold"),  # Improve y-axis readability
+    axis.title.x = element_text(size = 16, face = "bold"),  # Make x-axis title bigger and bold
+    axis.title.y = element_text(size = 16, face = "bold"),  # Make y-axis title bigger and bold
+    plot.title = element_text(size = 18, face = "bold", hjust = 0.5),  # Center and enlarge title
+    legend.title = element_text(size = 16, face = "bold"),  # Increase legend title size
+    legend.text = element_text(size = 14)  # Increase legend text size
+  )
 
 
 #Visit 2
@@ -517,10 +538,10 @@ shapiro_summary2 <- data.frame(
   Non_Normal_Count = c(
     1, # Original dataset
     
-    4, 6, 5, 6,  # KNN
-    0, 0, 1, 2,     # Half-min
-    0, 0, 3, 3,     # RF
-    1, 0, 2, 4     # QRILC
+    6, 8, 10, 3,  # KNN
+    1, 0, 1, 3,     # Half-min
+    1, 2, 4, 2,     # RF
+    1, 2, 5, 3     # QRILC
   )
 )
 
@@ -541,13 +562,24 @@ original_non_normal2 <- shapiro_summary2 %>%
 ggplot(shapiro_summary2, aes(x = Missingness, y = Non_Normal_Count, color = Method, group = Method)) +
   geom_line(size = 1) +
   geom_point(size = 3) +
-  geom_hline(yintercept = original_non_normal2, linetype = "dashed", color = "black", size = 1) + # Dashed reference line
-  theme_minimal() +
-  labs(title = "Effect of Imputation on Normality of Metabolites (Visit 2)",
-       x = "Missingness Percentage (%)",
-       y = "Count of Non-Normal Metabolites",
-       color = "Imputation Method") +
-  theme(axis.text.x = element_text(angle = 45, hjust = 1)) 
+  geom_hline(yintercept = original_non_normal2, linetype = "dashed", color = "lightgreen", size = 1) + # Dashed reference line
+  theme_minimal(base_size = 16) +  # Increase overall font size
+  labs(
+    title = "Effect of Imputation on Normality of Metabolites (Visit 2)",
+    x = "Missingness Percentage (%)",
+    y = "Count of Non-Normal Metabolites",
+    color = "Imputation Method"
+  ) +
+  theme(
+    axis.text.x = element_text(angle = 45, hjust = 1, size = 14, face = "bold"),  # Improve x-axis readability
+    axis.text.y = element_text(size = 14, face = "bold"),  # Improve y-axis readability
+    axis.title.x = element_text(size = 16, face = "bold"),  # Make x-axis title bigger and bold
+    axis.title.y = element_text(size = 16, face = "bold"),  # Make y-axis title bigger and bold
+    plot.title = element_text(size = 18, face = "bold", hjust = 0.5),  # Center and enlarge title
+    legend.title = element_text(size = 16, face = "bold"),  # Increase legend title size
+    legend.text = element_text(size = 14)  # Increase legend text size
+  )
+
 
 
 # ------------------------------------
@@ -606,7 +638,7 @@ t_test_half_min_40pct <- t_test_func(FAO_original, Halfmin_40pct_tot) #0/34
 t_test_KNN_10pct <- t_test_func(FAO_original, KNN_10pct_tot) #0/34
 t_test_KNN_20pct <- t_test_func(FAO_original, KNN_20pct_tot) #0/34
 t_test_KNN_30pct <- t_test_func(FAO_original, KNN_30pct_tot) #0/34
-t_test_KNN_40pct <- t_test_func(FAO_original, KNN_40pct_tot) #5/34
+t_test_KNN_40pct <- t_test_func(FAO_original, KNN_40pct_tot) #10/34
 #RF
 t_test_RF_10pct <- t_test_func(FAO_original, RF_10pct_tot) #0/34
 t_test_RF_20pct <- t_test_func(FAO_original, RF_20pct_tot) #0/34
@@ -762,25 +794,25 @@ visit_statistical_tests <- function(data) {
 #original 
 visit_original_res <- visit_statistical_tests(FAO_original)  #18/34 W and 16/34 T
 #Halfmin
-visit_Halfmin10pct_res <- visit_statistical_tests(Halfmin_10pct_tot) #0/34 W and 8/34 T
-visit_Halfmin20pct_res <- visit_statistical_tests(Halfmin_20pct_tot) #0/34 W and 0/34 T
-visit_Halfmin30pct_res <- visit_statistical_tests(Halfmin_30pct_tot) #0/34 W and 2/34 T
-visit_Halfmin40pct_res <- visit_statistical_tests(Halfmin_40pct_tot) #0/34 W and 2/34 T
+visit_Halfmin10pct_res <- visit_statistical_tests(Halfmin_10pct_tot) #0/34 W and 0/34 T
+visit_Halfmin20pct_res <- visit_statistical_tests(Halfmin_20pct_tot) #0/34 W and 3/34 T
+visit_Halfmin30pct_res <- visit_statistical_tests(Halfmin_30pct_tot) #0/34 W and 4/34 T
+visit_Halfmin40pct_res <- visit_statistical_tests(Halfmin_40pct_tot) #0/34 W and 1/34 T
 #KNN
-visit_KNN10pct_res <- visit_statistical_tests(KNN_10pct_tot) #13/34 W 12/34 T
-visit_KNN20pct_res <- visit_statistical_tests(KNN_20pct_tot) #11/34 W 14/34 T
-visit_KNN30pct_res <- visit_statistical_tests(KNN_30pct_tot) #8/11 W 7/34 T
-visit_KNN40pct_res <- visit_statistical_tests(KNN_40pct_tot) #6/34 W 10/34 T
+visit_KNN10pct_res <- visit_statistical_tests(KNN_10pct_tot) #13/34 W 13/34 T
+visit_KNN20pct_res <- visit_statistical_tests(KNN_20pct_tot) #12/34 W 11/34 T
+visit_KNN30pct_res <- visit_statistical_tests(KNN_30pct_tot) #10/11 W 10/34 T
+visit_KNN40pct_res <- visit_statistical_tests(KNN_40pct_tot) #6/34 W 7/34 T
 #RF
-visit_RF10pct_res <- visit_statistical_tests(RF_10pct_tot) #17/34 W 18/34 T
-visit_RF20pct_res <- visit_statistical_tests(RF_20pct_tot) #17/34 W 19/34 T
-visit_RF30pct_res <- visit_statistical_tests(RF_30pct_tot) #16/34 W 21/34 T
-visit_RF40pct_res <- visit_statistical_tests(RF_40pct_tot) #22/34 W 21/34 T
+visit_RF10pct_res <- visit_statistical_tests(RF_10pct_tot) #17/34 W 16/34 T
+visit_RF20pct_res <- visit_statistical_tests(RF_20pct_tot) #21/34 W 21/34 T
+visit_RF30pct_res <- visit_statistical_tests(RF_30pct_tot) #18/34 W 19/34 T
+visit_RF40pct_res <- visit_statistical_tests(RF_40pct_tot) #21/34 W 20/34 T
 #QRILC
-visit_QRILC10pct_res <- visit_statistical_tests(QRILC_10pct_tot) #13/34 W 12/34 T
-visit_QRILC20pct_res <- visit_statistical_tests(QRILC_20pct_tot) #13/34 W 13/34 T
-visit_QRILC30pct_res <- visit_statistical_tests(QRILC_30pct_tot) #10/34 W 13/34 T
-visit_QRILC40pct_res <- visit_statistical_tests(QRILC_40pct_tot) #10/34 W 10/34 T
+visit_QRILC10pct_res <- visit_statistical_tests(QRILC_10pct_tot) #13/34 W 15/34 T
+visit_QRILC20pct_res <- visit_statistical_tests(QRILC_20pct_tot) #13/34 W 12/34 T
+visit_QRILC30pct_res <- visit_statistical_tests(QRILC_30pct_tot) #10/34 W 10/34 T
+visit_QRILC40pct_res <- visit_statistical_tests(QRILC_40pct_tot) #0/34 W 4/34 T
 
 #Create data frame for number of significant metabolites
 data <- data.frame(
@@ -793,13 +825,13 @@ data <- data.frame(
                  "Original", "10%", "20%", "30%", "40%",
                  "Original", "10%", "20%", "30%", "40%"),
   Wilcoxon = c(18, 0, 0, 0, 0,   
-               18, 13, 11, 8, 6, 
-               18, 17, 17, 16, 22,  
-               18, 13, 13, 10, 10),  
-  TTest = c(16, 8, 0, 2, 2,  
-            16, 12, 14, 7, 10,  
-            16, 18, 19, 21, 21,  
-            16, 12, 13, 13, 10)  
+               18, 13, 12, 10, 6, 
+               18, 17, 21, 18, 21,  
+               18, 13, 13, 10, 0),  
+  TTest = c(16, 0, 3, 4, 1,  
+            16, 13, 11, 10, 7,  
+            16, 16, 21, 19, 20,  
+            16, 15, 12, 10, 4)  
 )
 
 # Convert Percentage to factor to maintain ordering
@@ -809,21 +841,29 @@ data$Percentage <- factor(data$Percentage, levels = c("Original", "10%", "20%", 
 data_long <- data %>% 
   pivot_longer(cols = c("Wilcoxon", "TTest"), names_to = "Test", values_to = "Significant_Metabolites")
 
-# Create grouped bar plot ensuring "Original" appears first in each facet
+#ceate grouped bar plot ensuring "Original" appears first in each facet
 ggplot(data_long, aes(x = Percentage, y = Significant_Metabolites, fill = Test)) +
   geom_bar(stat = "identity", position = "dodge") +
   geom_text(aes(label = Significant_Metabolites), 
             position = position_dodge(width = 0.9), 
-            vjust = -0.3, size = 5) +  # Add exact numbers above bars
-  facet_wrap(~ Method, scales = "free_x", nrow = 2) +  # Ensure each imputation method has its own facet
+            vjust = -0.3, size = 6, fontface = "bold") +  
+  facet_wrap(~ Method, scales = "free_x", nrow = 2) +  
   labs(title = "Number of Significant Metabolites (Visit 1 vs Visit 2)",
        x = "Missingness Percentage",
        y = "Number of Significant Metabolites",
        fill = "Statistical Test") +
-  theme_minimal(base_size = 14) +  # Increase font size
-  theme(axis.text.x = element_text(angle = 45, hjust = 1, size = 12),
-        strip.text = element_text(size = 14), # Increase facet label size
-        panel.spacing = unit(2, "lines")) # More spacing between facets
+  theme_minimal(base_size = 16) +  # Increase overall font size
+  theme(
+    axis.text.x = element_text(angle = 45, hjust = 1, size = 14, face = "bold"),  # Larger x-axis labels
+    axis.text.y = element_text(size = 14, face = "bold"),  # Larger y-axis labels
+    axis.title.x = element_text(size = 16, face = "bold"),  # Larger and bold x-axis title
+    axis.title.y = element_text(size = 16, face = "bold"),  # Larger and bold y-axis title
+    plot.title = element_text(size = 18, face = "bold", hjust = 0.5),  # Centered and bold title
+    legend.title = element_text(size = 16, face = "bold"),  # Larger and bold legend title
+    legend.text = element_text(size = 14),  # Larger legend text
+    strip.text = element_text(size = 16, face = "bold"),  # Larger facet label size
+    panel.spacing = unit(2, "lines")  # More spacing between facets
+  )
 
 
 # ------------------------------------
@@ -942,7 +982,7 @@ ggplot(nrmse_data1, aes(x = MCAR_Proportion, y = Weighted_NRMSE, fill = Imputati
   geom_boxplot(outlier.shape = NA, alpha = 0.7) + #boxplot wiht transparency and w/o outliers
   scale_fill_manual(values = c("lightblue", "orange", "blue", "magenta")) +
   labs(
-    title = "Weighted NRMSE across Imputation Method and MCAR Proportions (Visti 1)",
+    title = "Weighted NRMSE across Imputation Method and MCAR Proportions (Visit 1)",
     x = "MCAR Proportion (%)",
     y = "Weigthed NRMSE", 
     fill = "Imputation Method"
@@ -986,7 +1026,7 @@ ggplot(nrmse_data2, aes(x = MCAR_Proportion, y = Weighted_NRMSE, fill = Imputati
   geom_boxplot(outlier.shape = NA, alpha = 0.7) + #boxplot wiht transparency and w/o outliers
   scale_fill_manual(values = c("lightblue", "orange", "blue", "magenta")) +
   labs(
-    title = "Weighted NRMSE across Imputation Method and MCAR Proportions (Visti 1)",
+    title = "Weighted NRMSE across Imputation Method and MCAR Proportions (Visit 2)",
     x = "MCAR Proportion (%)",
     y = "Weigthed NRMSE", 
     fill = "Imputation Method"
@@ -1242,17 +1282,62 @@ print(plot_knn2)
 print(plot_rf2)
 print(plot_qrilc2)
 
+#combine and make one plot for visit 1 and one for visit 2
+all_data1 <- bind_rows(halfmin_data1, knn_data1, rf_data1, qrilc_data1)
+all_data2 <- bind_rows(halfmin_data2, knn_data2, rf_data2, qrilc_data2)
+
+ggplot(all_data1, aes(x = Normalized_Difference, fill = Percentage, color = Percentage)) +
+  geom_density(alpha = 0.3) +
+  theme_minimal() +
+  labs(title = "Normalized Difference Across Imputation Methods (Visit 1)",
+       x = "Normalized Difference",
+       y = "Density") +
+  xlim(-0.2, 0.2) +
+  geom_vline(xintercept = 0, linetype = "dashed", color = "red") +
+  facet_wrap(~Method, scales = "free") +
+  theme(
+    plot.title = element_text(size = 14, face = "bold"),
+    axis.title.x = element_text(size = 12, face = "bold"),
+    axis.title.y = element_text(size = 12, face = "bold"),
+    axis.text = element_text(size = 10, face = "bold"),
+    strip.text = element_text(size = 12, face = "bold"),  # Makes facet labels bold
+    legend.title = element_text(size = 12, face = "bold"),
+    legend.text = element_text(size = 10, face = "bold")
+  )
+
+
+ggplot(all_data2, aes(x = Normalized_Difference, fill = Percentage, color = Percentage)) +
+  geom_density(alpha = 0.3) +
+  theme_minimal() +
+  labs(title = "Normalized Difference Across Imputation Methods (Visit 2)",
+       x = "Normalized Difference",
+       y = "Density") +
+  xlim(-0.2, 0.2) +
+  geom_vline(xintercept = 0, linetype = "dashed", color = "red") +
+  facet_wrap(~Method, scales = "free") +
+  theme(
+    plot.title = element_text(size = 14, face = "bold"),
+    axis.title.x = element_text(size = 12, face = "bold"),
+    axis.title.y = element_text(size = 12, face = "bold"),
+    axis.text = element_text(size = 10, face = "bold"),
+    strip.text = element_text(size = 12, face = "bold"),  # Makes facet labels bold
+    legend.title = element_text(size = 12, face = "bold"),
+    legend.text = element_text(size = 10, face = "bold")
+  )
+
+
 # ------------------------------------
 # Part 5: Plot Distribution
 # ------------------------------------
 
 #function to plot the distribution before and after imputation and only imputed values 
-plot_distribution <- function(original, imputed, method, percentage, visit) {
-  #numeric columns 
+# Function to plot the distribution before and after imputation, filtering only significant metabolites
+plot_distribution <- function(original, imputed, method, percentage, visit, significant_metabolites) {
+  # Select numeric metabolite columns
   numeric_original <- original[, 6:ncol(original)]
   numeric_imputed <- imputed[, 6:ncol(imputed)]
   
-  #convert to long format for plotting
+  # Convert to long format for plotting
   original_long <- numeric_original %>%
     pivot_longer(cols = everything(), names_to = "Metabolite", values_to = "Value") %>%
     mutate(Data = "Original")
@@ -1261,82 +1346,115 @@ plot_distribution <- function(original, imputed, method, percentage, visit) {
     pivot_longer(cols = everything(), names_to = "Metabolite", values_to = "Value") %>%
     mutate(Data = "Imputed")
   
-  #combine data
+  # Combine data
   combined_data <- bind_rows(original_long, imputed_long)
   
-  #caclualte mean 
+  # **Filter only the significant metabolites**
+  combined_data <- combined_data %>% filter(Metabolite %in% significant_metabolites)
+  
+  # Calculate mean values for plotting mean lines
   mean_data <- combined_data %>%
     group_by(Metabolite, Data) %>%
     summarise(mean_value = mean(Value, na.rm = TRUE), .groups = "drop")
   
-  #plot 
+  # Plot
+  # Modify the plot to include a custom legend for the mean lines
   plot <- ggplot(combined_data, aes(x = Value, fill = Data)) +
-    geom_density(alpha = 0.5, size = 1) + #transparency
+    geom_density(alpha = 0.5, size = 1) +  # Transparency for overlapping distributions
     facet_wrap(~ Metabolite, scales = "free") +
-    theme_minimal() +
-    labs(title = paste0("Density Distribution Before and After ", method, " Imputation (", percentage, "% Missing, Visit ", visit, ")"),
+    theme_minimal(base_size = 16) +  # Increase overall font size
+    labs(title = paste0("Density Distribution Before and After ", method, 
+                        " Imputation (", percentage, "% Missing, Visit ", visit, ")"),
          x = "Value",
-         y = "Density") +
-    #add mean lines
+         y = "Density",
+         fill = "Data") +  # Legend title for data type
+    # Add mean lines for Original and Imputed data with a custom color legend
     geom_vline(data = mean_data %>% filter(Data == "Original"),
-               aes(xintercept = mean_value), color = "blue", linewidth = 0.8, linetype = "dashed") +
+               aes(xintercept = mean_value, color = "Original Mean"), 
+               linewidth = 0.8, linetype = "dashed") +
     geom_vline(data = mean_data %>% filter(Data == "Imputed"),
-               aes(xintercept = mean_value), color = "red", linewidth = 0.8, linetype = "dashed") +
-    theme(legend.position = "bottom")
+               aes(xintercept = mean_value, color = "Imputed Mean"), 
+               linewidth = 0.8, linetype = "dashed") +
+    scale_color_manual(name = "Mean Values",  # Custom legend for mean lines
+                       values = c("Original Mean" = "blue", "Imputed Mean" = "red")) +
+    theme(
+      legend.position = "bottom",
+      axis.text.x = element_text(size = 14, face = "bold"),  # Bigger and bold x-axis labels
+      axis.text.y = element_text(size = 14, face = "bold"),  # Bigger and bold y-axis labels
+      axis.title.x = element_text(size = 16, face = "bold"),  # Bigger and bold x-axis title
+      axis.title.y = element_text(size = 16, face = "bold"),  # Bigger and bold y-axis title
+      plot.title = element_text(size = 18, face = "bold", hjust = 0.5),  # Bigger, centered, bold title
+      legend.title = element_text(size = 16, face = "bold"),  # Bigger and bold legend title
+      legend.text = element_text(size = 14),  # Bigger legend text
+      strip.text = element_text(size = 16, face = "bold")  # Bigger facet labels
+    )
+  
   
   
   print(plot)
   return(combined_data)
-  
 }
+
+# Extract significant metabolites from Wilcoxon test (FDR-adjusted p-value < 0.05)
+significant_metabolites_wilcox <- visit_original_res %>%
+  filter(Wilcoxon_Adjusted_P < 0.05) %>%
+  pull(Metabolite)  # Extract the names of significant metabolites
+
+
 
 #call function to plot distirbution
 #Halfmin
-dist1_Halfmin_10pct <- plot_distribution(visit1_data, Halfmin_10pct_1, "Half-min", 10, 1)
-dist1_Halfmin_20pct <- plot_distribution(visit1_data, Halfmin_20pct_1, "Half-min", 10, 1)
-dist1_Halfmin_30pct <- plot_distribution(visit1_data, Halfmin_30pct_1, "Half-min", 10, 1)
-dist1_Halfmin_40pct <- plot_distribution(visit1_data, Halfmin_40pct_1, "Half-min", 10, 1)
-#visit 2
-dist2_Halfmin_10pct <- plot_distribution(visit2_data, Halfmin_10pct_2, "Half-min", 10, 2)
-dist2_Halfmin_20pct <- plot_distribution(visit2_data, Halfmin_20pct_2, "Half-min", 10, 2)
-dist2_Halfmin_30pct <- plot_distribution(visit2_data, Halfmin_30pct_2, "Half-min", 10, 2)
-dist2_Halfmin_40pct <- plot_distribution(visit2_data, Halfmin_40pct_2, "Half-min", 10, 2)
+# Visit 1
+dist1_Halfmin_10pct <- plot_distribution(visit1_data, Halfmin_10pct_1, "Half-min", 10, 1, significant_metabolites_wilcox)
+dist1_Halfmin_20pct <- plot_distribution(visit1_data, Halfmin_20pct_1, "Half-min", 20, 1, significant_metabolites_wilcox)
+dist1_Halfmin_30pct <- plot_distribution(visit1_data, Halfmin_30pct_1, "Half-min", 30, 1, significant_metabolites_wilcox)
+dist1_Halfmin_40pct <- plot_distribution(visit1_data, Halfmin_40pct_1, "Half-min", 40, 1, significant_metabolites_wilcox)
+
+# Visit 2
+dist2_Halfmin_10pct <- plot_distribution(visit2_data, Halfmin_10pct_2, "Half-min", 10, 2, significant_metabolites_wilcox)
+dist2_Halfmin_20pct <- plot_distribution(visit2_data, Halfmin_20pct_2, "Half-min", 20, 2, significant_metabolites_wilcox)
+dist2_Halfmin_30pct <- plot_distribution(visit2_data, Halfmin_30pct_2, "Half-min", 30, 2, significant_metabolites_wilcox)
+dist2_Halfmin_40pct <- plot_distribution(visit2_data, Halfmin_40pct_2, "Half-min", 40, 2, significant_metabolites_wilcox)
 
 #KNN
-#Visit 1
-dist1_KNN_10pct <- plot_distribution(visit1_data, KNN_10pct_1, "KNN", 10, 1)
-dist1_KNN_20pct <- plot_distribution(visit1_data, KNN_20pct_1, "KNN", 20, 1)
-dist1_KNN_30pct <- plot_distribution(visit1_data, KNN_30pct_1, "KNN", 30, 1)
-dist1_KNN_40pct <- plot_distribution(visit1_data, KNN_40pct_1, "KNN", 40, 1)
-#Visit 2
-dist2_KNN_10pct <- plot_distribution(visit2_data, KNN_10pct_2, "KNN", 10, 2)
-dist2_KNN_20pct <- plot_distribution(visit2_data, KNN_20pct_2, "KNN", 20, 2)
-dist2_KNN_30pct <- plot_distribution(visit2_data, KNN_30pct_2, "KNN", 30, 2)
-dist2_KNN_40pct <- plot_distribution(visit2_data, KNN_40pct_2, "KNN", 40, 2)
+# Visit 1
+dist1_KNN_10pct <- plot_distribution(visit1_data, KNN_10pct_1, "KNN", 10, 1, significant_metabolites_wilcox)
+dist1_KNN_20pct <- plot_distribution(visit1_data, KNN_20pct_1, "KNN", 20, 1, significant_metabolites_wilcox)
+dist1_KNN_30pct <- plot_distribution(visit1_data, KNN_30pct_1, "KNN", 30, 1, significant_metabolites_wilcox)
+dist1_KNN_40pct <- plot_distribution(visit1_data, KNN_40pct_1, "KNN", 40, 1, significant_metabolites_wilcox)
+
+# Visit 2
+dist2_KNN_10pct <- plot_distribution(visit2_data, KNN_10pct_2, "KNN", 10, 2, significant_metabolites_wilcox)
+dist2_KNN_20pct <- plot_distribution(visit2_data, KNN_20pct_2, "KNN", 20, 2, significant_metabolites_wilcox)
+dist2_KNN_30pct <- plot_distribution(visit2_data, KNN_30pct_2, "KNN", 30, 2, significant_metabolites_wilcox)
+dist2_KNN_40pct <- plot_distribution(visit2_data, KNN_40pct_2, "KNN", 40, 2, significant_metabolites_wilcox)
+
 
 #RF
-#visit1
-dist1_RF_10pct <- plot_distribution(visit1_data, RF_10pct_1, "RF", 10,1)
-dist1_RF_20pct <- plot_distribution(visit1_data, RF_20pct_1, "RF", 20,1)
-dist1_RF_30pct <- plot_distribution(visit1_data, RF_30pct_1, "RF", 30,1)
-dist1_RF_40pct <- plot_distribution(visit1_data, RF_40pct_1, "RF", 40,1)
-#visit2
-dist2_RF_10pct <- plot_distribution(visit2_data, RF_10pct_2, "RF", 10,2)
-dist2_RF_20pct <- plot_distribution(visit2_data, RF_20pct_2, "RF", 20,2)
-dist2_RF_30pct <- plot_distribution(visit2_data, RF_30pct_2, "RF", 30,2)
-dist2_RF_40pct <- plot_distribution(visit2_data, RF_40pct_2, "RF", 40,2)
+# Visit 1
+dist1_RF_10pct <- plot_distribution(visit1_data, RF_10pct_1, "RF", 10, 1, significant_metabolites_wilcox)
+dist1_RF_20pct <- plot_distribution(visit1_data, RF_20pct_1, "RF", 20, 1, significant_metabolites_wilcox)
+dist1_RF_30pct <- plot_distribution(visit1_data, RF_30pct_1, "RF", 30, 1, significant_metabolites_wilcox)
+dist1_RF_40pct <- plot_distribution(visit1_data, RF_40pct_1, "RF", 40, 1, significant_metabolites_wilcox)
+
+# Visit 2
+dist2_RF_10pct <- plot_distribution(visit2_data, RF_10pct_2, "RF", 10, 2, significant_metabolites_wilcox)
+dist2_RF_20pct <- plot_distribution(visit2_data, RF_20pct_2, "RF", 20, 2, significant_metabolites_wilcox)
+dist2_RF_30pct <- plot_distribution(visit2_data, RF_30pct_2, "RF", 30, 2, significant_metabolites_wilcox)
+dist2_RF_40pct <- plot_distribution(visit2_data, RF_40pct_2, "RF", 40, 2, significant_metabolites_wilcox)
+
 
 #QRILC
 #Visit 1
-dist1_QRILC_10pct <- plot_distribution(visit1_data, QRILC_10pct_1, "QRILC", 10,1)
-dist1_QRILC_20pct <- plot_distribution(visit1_data, QRILC_20pct_1, "QRILC", 20,1)
-dist1_QRILC_30pct <- plot_distribution(visit1_data, QRILC_30pct_1, "QRILC", 30,1)
-dist1_QRILC_40pct <- plot_distribution(visit1_data, QRILC_40pct_1, "QRILC", 40,1)
+dist1_QRILC_10pct <- plot_distribution(visit1_data, QRILC_10pct_1, "QRILC", 10,1,significant_metabolites_wilcox)
+dist1_QRILC_20pct <- plot_distribution(visit1_data, QRILC_20pct_1, "QRILC", 20,1,significant_metabolites_wilcox)
+dist1_QRILC_30pct <- plot_distribution(visit1_data, QRILC_30pct_1, "QRILC", 30,1,significant_metabolites_wilcox)
+dist1_QRILC_40pct <- plot_distribution(visit1_data, QRILC_40pct_1, "QRILC", 40,1,significant_metabolites_wilcox)
 #Visit 2
-dist2_QRILC_10pct <- plot_distribution(visit2_data, QRILC_10pct_2, "QRILC", 10,2)
-dist2_QRILC_20pct <- plot_distribution(visit2_data, QRILC_20pct_2, "QRILC", 20,2)
-dist2_QRILC_30pct <- plot_distribution(visit2_data, QRILC_30pct_2, "QRILC", 30,2)
-dist2_QRILC_40pct <- plot_distribution(visit2_data, QRILC_40pct_2, "QRILC", 40,2)
+dist2_QRILC_10pct <- plot_distribution(visit2_data, QRILC_10pct_2, "QRILC", 10,2,significant_metabolites_wilcox)
+dist2_QRILC_20pct <- plot_distribution(visit2_data, QRILC_20pct_2, "QRILC", 20,2, significant_metabolites_wilcox)
+dist2_QRILC_30pct <- plot_distribution(visit2_data, QRILC_30pct_2, "QRILC", 30,2,significant_metabolites_wilcox)
+dist2_QRILC_40pct <- plot_distribution(visit2_data, QRILC_40pct_2, "QRILC", 40,2, significant_metabolites_wilcox)
 
 
 # ------------------------------------
@@ -1438,18 +1556,20 @@ whole_dist2_QRILC_40pct <- plot_whole_distribution(visit2_data, QRILC_40pct_2, "
 #fit an ANOVA model with an interaction term between imputation method and missingness level 
 #apply log to normalize data
 
-#add a "Visit" column
-nrmse_data1$Visit <- "Visit 1"
-nrmse_data2$Visit <- "Visit 2"
 
-#combine both datasets
-nrmse_combined <- bind_rows(nrmse_data1, nrmse_data2)
+#ANOVA for Visit 1 and VIsit 2 (effect of imputation and mcar proportion)
+#Visit 1
+anova_visit1 <- aov(log(Weighted_NRMSE) ~ Imputation_Method * MCAR_Proportion, data = nrmse_data1)
+summary(anova_visit1)  
 
-anova_result <- aov(log(Weighted_NRMSE) ~ Visit + Imputation_Method + MCAR_Proportion, 
-                    data = nrmse_combined)
+#check assumptions (Homogeneity of Variance)
+#leveneTest(Weighted_NRMSE ~ Imputation_Method * MCAR_Proportion, data = nrmse_data1)
 
-# Print ANOVA results
-summary(anova_result)
+#ANOVA for Visit 2
+anova_visit2 <- aov(log(Weighted_NRMSE) ~ Imputation_Method * MCAR_Proportion, data = nrmse_data2)
+summary(anova_visit2)  
+
+
 
 # For Imputation_Method
 # --------
@@ -1483,12 +1603,12 @@ summary(anova_result)
 #residul look symmetry and a bit bell shaped then it suggests normalizy 
 
 #visit 1
-ggplot(data.frame(residuals = residuals(anova_model_mcar1)), aes(x = residuals)) +
+ggplot(data.frame(residuals = residuals(anova_visit1)), aes(x = residuals)) +
   geom_histogram(binwidth = 0.05, fill = "blue", alpha = 0.7) +
   labs(title = "Histogram of Residuals", x = "Residuals", y = "Frequency") +
   theme_minimal()
 #visit 2
-ggplot(data.frame(residuals = residuals(anova_model_mcar2)), aes(x = residuals)) +
+ggplot(data.frame(residuals = residuals(anova_visit2)), aes(x = residuals)) +
   geom_histogram(binwidth = 0.05, fill = "blue", alpha = 0.7) +
   labs(title = "Histogram of Residuals", x = "Residuals", y = "Frequency") +
   theme_minimal()
@@ -1499,36 +1619,36 @@ ggplot(data.frame(residuals = residuals(anova_model_mcar2)), aes(x = residuals))
 #S-shaped pattern = possibles skewness
 
 #visit 1
-qqnorm(residuals(anova_model_mcar1), col = "blue")
-qqline(residuals(anova_model_mcar1), col = "red")
+qqnorm(residuals(anova_visit1), col = "blue")
+qqline(residuals(anova_visit1), col = "red")
 
 #visit 2
-qqnorm(residuals(anova_model_mcar2), col = "blue")
-qqline(residuals(anova_model_mcar2), col = "red")
+qqnorm(residuals(anova_visit2), col = "blue")
+qqline(residuals(anova_visit2), col = "red")
 
 #Tukey-Anscombe plot to check residuals vs fitted values
 #x-axis = fitted values (predicted) and y-axis = residueals (error)
 #residuals should be evenly spread, if the points fan out or forma pattern the assumption of homoscedascity is violated 
 
 #visit 1
-plot(fitted(anova_model_mcar1), resid(anova_model_mcar1), 
+plot(fitted(anova_visit1), resid(anova_visit1), 
      main = "Tukey-Anscombe Plot", 
      col = "blue", 
      xlab = "Fitted Values (Predicted by ANOVA Model)", 
      ylab = "Residuals (Errors)")
 
 #run shapiro test on anova model
-shapiro.test(resid(anova_model_mcar1))
+shapiro.test(resid(anova_visit1))
 
 #visit 2
-plot(fitted(anova_model_mcar2), resid(anova_model_mcar2), 
+plot(fitted(anova_visit2), resid(anova_visit2), 
      main = "Tukey-Anscombe Plot", 
      col = "blue", 
      xlab = "Fitted Values (Predicted by ANOVA Model)", 
      ylab = "Residuals (Errors)")
 
 #run shapiro test on anova model
-shapiro.test(resid(anova_model_mcar2))
+shapiro.test(resid(anova_visit2))
 
 # ------------------------------------
 # Part 7: Kruskal-Wallis
@@ -1593,6 +1713,269 @@ ggplot(nrmse_data2, aes(x = Imputation_Method, y = Weighted_NRMSE, fill = Imputa
        x = "Imputation Method",
        y = "Weighted NRMSE") +
   ylim(0,1)
+
+# ------------------------------------
+# Part 9: Compare Metabolite 
+# ------------------------------------
+
+#function to compute summary statistics
+compute_stats <- function(data, visit_label, imputation_method, mcar_percent) {
+  data_long <- data %>%
+    pivot_longer(cols = 6:ncol(data), names_to = "Metabolite", values_to = "Value") %>%
+    mutate(Visit = visit_label, Imputation_Method = imputation_method, MCAR_Percent = mcar_percent)
+  
+  stats <- data_long %>%
+    group_by(Metabolite, Visit, Imputation_Method, MCAR_Percent) %>%
+    summarise(
+      Mean = mean(Value, na.rm = TRUE),
+      Median = median(Value, na.rm = TRUE),
+      SD = sd(Value, na.rm = TRUE),
+      .groups = 'drop'
+    )
+  
+  return(stats)
+}
+
+#compute original statistics for Visit 1 and Visit 2
+original_visit1_stats <- compute_stats(visit1_data, "Visit 1", "Original", "0%")
+original_visit2_stats <- compute_stats(visit2_data, "Visit 2", "Original", "0%")
+
+#halfmin
+#visit 1
+halfmin10_visit1_stats <- compute_stats(Halfmin_10pct_1, "Visit 1", "Imputed", "10%")
+halfmin20_visit1_stats <- compute_stats(Halfmin_20pct_1, "Visit 1", "Imputed", "20%")
+halfmin30_visit1_stats <- compute_stats(Halfmin_30pct_1, "Visit 1", "Imputed", "30%")
+halfmin40_visit1_stats <- compute_stats(Halfmin_40pct_1, "Visit 1", "Imputed", "40%")
+#visit 2
+halfmin10_visit2_stats <- compute_stats(Halfmin_10pct_2, "Visit 2", "Imputed", "10%")
+halfmin20_visit2_stats <- compute_stats(Halfmin_20pct_2, "Visit 2", "Imputed", "20%")
+halfmin30_visit2_stats <- compute_stats(Halfmin_30pct_2, "Visit 2", "Imputed", "30%")
+halfmin40_visit2_stats <- compute_stats(Halfmin_40pct_2, "Visit 2", "Imputed", "40%")
+
+#knn
+#visit 1
+knn10_visit1_stats <- compute_stats(KNN_10pct_1, "Visit 1", "Imputed", "10%")
+knn20_visit1_stats <- compute_stats(KNN_20pct_1, "Visit 1", "Imputed", "20%")
+knn30_visit1_stats <- compute_stats(KNN_30pct_1, "Visit 1", "Imputed", "30%")
+knn40_visit1_stats <- compute_stats(KNN_40pct_1, "Visit 1", "Imputed", "40%")
+#visit 2
+knn10_visit2_stats <- compute_stats(KNN_10pct_2, "Visit 2", "Imputed", "10%")
+knn20_visit2_stats <- compute_stats(KNN_20pct_2, "Visit 2", "Imputed", "20%")
+knn30_visit2_stats <- compute_stats(KNN_30pct_2, "Visit 2", "Imputed", "30%")
+knn40_visit2_stats <- compute_stats(KNN_40pct_2, "Visit 2", "Imputed", "40%")
+
+#RF
+#visit 1
+rf10_visit1_stats <- compute_stats(RF_10pct_1, "Visit 1", "Imputed", "10%")
+rf20_visit1_stats <- compute_stats(RF_20pct_1, "Visit 1", "Imputed", "20%")
+rf30_visit1_stats <- compute_stats(RF_30pct_1, "Visit 1", "Imputed", "30%")
+rf40_visit1_stats <- compute_stats(RF_40pct_1, "Visit 1", "Imputed", "40%")
+#visit 2
+rf10_visit2_stats <- compute_stats(RF_10pct_2, "Visit 2", "Imputed", "10%")
+rf20_visit2_stats <- compute_stats(RF_20pct_2, "Visit 2", "Imputed", "20%")
+rf30_visit2_stats <- compute_stats(RF_30pct_2, "Visit 2", "Imputed", "30%")
+rf40_visit2_stats <- compute_stats(RF_40pct_2, "Visit 2", "Imputed", "40%")
+
+#QRILC
+#visit 1
+qrilc10_visit1_stats <- compute_stats(QRILC_10pct_1, "Visit 1", "Imputed", "10%")
+qrilc20_visit1_stats <- compute_stats(QRILC_20pct_1, "Visit 1", "Imputed", "20%")
+qrilc30_visit1_stats <- compute_stats(QRILC_30pct_1, "Visit 1", "Imputed", "30%")
+qrilc40_visit1_stats <- compute_stats(QRILC_40pct_1, "Visit 1", "Imputed", "40%")
+#visit 2
+qrilc10_visit2_stats <- compute_stats(QRILC_10pct_2, "Visit 2", "Imputed", "10%")
+qrilc20_visit2_stats <- compute_stats(QRILC_20pct_2, "Visit 2", "Imputed", "20%")
+qrilc30_visit2_stats <- compute_stats(QRILC_30pct_2, "Visit 2", "Imputed", "30%")
+qrilc40_visit2_stats <- compute_stats(QRILC_40pct_2, "Visit 2", "Imputed", "40%")
+
+# Combine statistics for each imputation method separately, including the original (0%) data
+halfmin_stats <- bind_rows(
+  original_visit1_stats, original_visit2_stats,
+  halfmin10_visit1_stats, halfmin20_visit1_stats, halfmin30_visit1_stats, halfmin40_visit1_stats,
+  halfmin10_visit2_stats, halfmin20_visit2_stats, halfmin30_visit2_stats, halfmin40_visit2_stats
+)
+
+knn_stats <- bind_rows(
+  original_visit1_stats, original_visit2_stats,
+  knn10_visit1_stats, knn20_visit1_stats, knn30_visit1_stats, knn40_visit1_stats,
+  knn10_visit2_stats, knn20_visit2_stats, knn30_visit2_stats, knn40_visit2_stats
+)
+
+rf_stats <- bind_rows(
+  original_visit1_stats, original_visit2_stats,
+  rf10_visit1_stats, rf20_visit1_stats, rf30_visit1_stats, rf40_visit1_stats,
+  rf10_visit2_stats, rf20_visit2_stats, rf30_visit2_stats, rf40_visit2_stats
+)
+
+qrilc_stats <- bind_rows(
+  original_visit1_stats, original_visit2_stats,
+  qrilc10_visit1_stats, qrilc20_visit1_stats, qrilc30_visit1_stats, qrilc40_visit1_stats,
+  qrilc10_visit2_stats, qrilc20_visit2_stats, qrilc30_visit2_stats, qrilc40_visit2_stats
+)
+
+# Convert MCAR_Percent to numeric (keeping 0% for original data)
+halfmin_stats$MCAR_Percent <- as.numeric(gsub("%", "", halfmin_stats$MCAR_Percent))
+knn_stats$MCAR_Percent <- as.numeric(gsub("%", "", knn_stats$MCAR_Percent))
+rf_stats$MCAR_Percent <- as.numeric(gsub("%", "", rf_stats$MCAR_Percent))
+qrilc_stats$MCAR_Percent <- as.numeric(gsub("%", "", qrilc_stats$MCAR_Percent))
+
+# Define function to generate plots for Mean, Median, and SD for a given imputation method
+plot_stats <- function(data, method) {
+  plot_mean <- ggplot(data, aes(x = MCAR_Percent, y = Mean, color = Visit, group = interaction(Metabolite, Visit))) +
+    geom_line(size = 1) +
+    geom_point(size = 2) +
+    facet_wrap(~Metabolite, scales = "free_y") +
+    theme_minimal() +
+    labs(title = paste("Mean Changes -", method, "Imputation (Including Original)"),
+         x = "MCAR Percentage",
+         y = "Mean") +
+    scale_color_manual(values = c("Visit 1" = "blue", "Visit 2" = "red")) +
+    theme(legend.position = "bottom")
+  
+  plot_median <- ggplot(data, aes(x = MCAR_Percent, y = Median, color = Visit, group = interaction(Metabolite, Visit))) +
+    geom_line(size = 1) +
+    geom_point(size = 2) +
+    facet_wrap(~Metabolite, scales = "free_y") +
+    theme_minimal() +
+    labs(title = paste("Median Changes -", method, "Imputation (Including Original)"),
+         x = "MCAR Percentage",
+         y = "Median") +
+    scale_color_manual(values = c("Visit 1" = "blue", "Visit 2" = "red")) +
+    theme(legend.position = "bottom")
+  
+  plot_sd <- ggplot(data, aes(x = MCAR_Percent, y = SD, color = Visit, group = interaction(Metabolite, Visit))) +
+    geom_line(size = 1) +
+    geom_point(size = 2) +
+    facet_wrap(~Metabolite, scales = "free_y") +
+    theme_minimal() +
+    labs(title = paste("SD Changes -", method, "Imputation (Including Original)"),
+         x = "MCAR Percentage",
+         y = "Standard Deviation") +
+    scale_color_manual(values = c("Visit 1" = "blue", "Visit 2" = "red")) +
+    theme(legend.position = "bottom")
+  
+  print(plot_mean)
+  print(plot_median)
+  print(plot_sd)
+}
+
+# Generate plots for each imputation method separately, now including original (0%) values
+plot_stats(halfmin_stats, "Halfmin")
+plot_stats(knn_stats, "KNN")
+plot_stats(rf_stats, "RF")
+plot_stats(qrilc_stats, "QRILC")
+
+
+#MEAN DIFFERENCE PLOT 
+
+#extract significant metabolites based on Wilcoxon test (FDR-adjusted p-value < 0.05)
+significant_metabolites_wilcox <- visit_original_res %>%
+  filter(Wilcoxon_Adjusted_P < 0.05) %>%
+  pull(Metabolite)  # Extract the names of significant metabolites
+
+
+# Function to compute mean differences
+compute_mean_difference <- function(data, method) {
+  mean_values <- data %>%
+    pivot_longer(cols = 6:ncol(.), names_to = "Metabolite", values_to = "Value") %>%
+    group_by(Metabolite, Visit) %>%
+    summarise(Mean_Value = mean(Value, na.rm = TRUE), .groups = "drop") %>%
+    pivot_wider(names_from = Visit, values_from = Mean_Value) %>%
+    mutate(Method = method,
+           Mean_Difference = `Visit 2` - `Visit 1`)
+  
+  return(mean_values)
+}
+
+# Compute mean differences for all methods
+mean_differences <- bind_rows(
+  compute_mean_difference(FAO_original, "Original"),
+  compute_mean_difference(Halfmin_10pct_tot, "Halfmin (10%)"),
+  compute_mean_difference(Halfmin_20pct_tot, "Halfmin (20%)"),
+  compute_mean_difference(Halfmin_30pct_tot, "Halfmin (30%)"),
+  compute_mean_difference(Halfmin_40pct_tot, "Halfmin (40%)"),
+  compute_mean_difference(KNN_10pct_tot, "KNN (10%)"),
+  compute_mean_difference(KNN_20pct_tot, "KNN (20%)"),
+  compute_mean_difference(KNN_30pct_tot, "KNN (30%)"),
+  compute_mean_difference(KNN_40pct_tot, "KNN (40%)"),
+  compute_mean_difference(RF_10pct_tot, "RF (10%)"),
+  compute_mean_difference(RF_20pct_tot, "RF (20%)"),
+  compute_mean_difference(RF_30pct_tot, "RF (30%)"),
+  compute_mean_difference(RF_40pct_tot, "RF (40%)"),
+  compute_mean_difference(QRILC_10pct_tot, "QRILC (10%)"),
+  compute_mean_difference(QRILC_20pct_tot, "QRILC (20%)"),
+  compute_mean_difference(QRILC_30pct_tot, "QRILC (30%)"),
+  compute_mean_difference(QRILC_40pct_tot, "QRILC (40%)")
+)
+
+# Convert Method to factor to maintain ordering
+mean_differences$Method <- factor(mean_differences$Method, 
+                                  levels = c("Original", 
+                                             "Halfmin (10%)", "Halfmin (20%)", "Halfmin (30%)", "Halfmin (40%)",
+                                             "KNN (10%)", "KNN (20%)", "KNN (30%)", "KNN (40%)",
+                                             "RF (10%)", "RF (20%)", "RF (30%)", "RF (40%)",
+                                             "QRILC (10%)", "QRILC (20%)", "QRILC (30%)", "QRILC (40%)"))
+
+# Filter mean differences to include only significant metabolites from Wilcoxon test
+filtered_mean_differences <- mean_differences %>%
+  filter(Metabolite %in% significant_metabolites_wilcox)
+
+# Function to plot mean differences for a specific imputation method (only significant metabolites)
+plot_mean_differences_per_method <- function(data, method_name) {
+  ggplot(data %>% filter(Imputation_Method %in% c("Original", method_name)), 
+         aes(x = Metabolite, y = Mean_Difference, fill = Percentage)) +
+    geom_bar(stat = "identity", position = "dodge") +
+    labs(title = paste("Mean Differences Between Visit 1 and Visit 2 (", method_name, ")", sep=""),
+         x = "Metabolite",
+         y = "Mean Difference (Visit 2 - Visit 1)",
+         fill = "Missingness %") +
+    theme_minimal(base_size = 14) +
+    theme(
+      axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1, size = 10, face = "bold"),
+      axis.title.x = element_text(size = 14, face = "bold"),
+      axis.title.y = element_text(size = 14, face = "bold"),
+      plot.title = element_text(size = 16, face = "bold", hjust = 0.5),
+      legend.title = element_text(size = 14, face = "bold"),
+      legend.text = element_text(size = 12)
+    )
+}
+
+# Generate separate plots for each imputation method using the filtered data
+plot_halfmin <- plot_mean_differences_per_method(filtered_mean_differences, "Halfmin")
+plot_knn <- plot_mean_differences_per_method(filtered_mean_differences, "KNN")
+plot_rf <- plot_mean_differences_per_method(filtered_mean_differences, "RF")
+plot_qrilc <- plot_mean_differences_per_method(filtered_mean_differences, "QRILC")
+
+# Display the filtered plots
+print(plot_halfmin)
+print(plot_knn)
+print(plot_rf)
+print(plot_qrilc)
+
+
+# Function to modify plots for layout adjustments
+adjust_plot_for_layout <- function(plot, remove_x_axis = TRUE, remove_y_axis = TRUE, remove_legend = TRUE) {
+  plot + theme(
+    axis.text.x = if (remove_x_axis) element_blank() else element_text(angle = 90, vjust = 0.5, hjust = 1, size = 10, face = "bold"),
+    axis.title.x = if (remove_x_axis) element_blank() else element_text(size = 14, face = "bold"),
+    axis.title.y = if (remove_y_axis) element_blank() else element_text(size = 14, face = "bold"),
+    legend.position = if (remove_legend) "none" else "right"  # Keep legend only for the last plot
+  )
+}
+
+# Modify plots: Remove x-axis from all except the bottom row
+plot_halfmin_adj <- adjust_plot_for_layout(plot_halfmin, remove_x_axis = TRUE, remove_y_axis = TRUE, remove_legend = TRUE)  # Keep y-axis here
+plot_knn_adj <- adjust_plot_for_layout(plot_knn, remove_x_axis = TRUE, remove_y_axis = TRUE, remove_legend = TRUE)
+plot_rf_adj <- adjust_plot_for_layout(plot_rf, remove_x_axis = TRUE, remove_y_axis = FALSE, remove_legend = TRUE)
+plot_qrilc_adj <- adjust_plot_for_layout(plot_qrilc, remove_x_axis = FALSE, remove_y_axis = TRUE, remove_legend = FALSE)  # Keep legend here
+
+# Combine plots in a vertical layout with shared axes
+combined_plot <- plot_halfmin_adj / plot_knn_adj / plot_rf_adj / plot_qrilc_adj + 
+  plot_layout(ncol = 1, guides = "collect") &  # Ensures only one legend
+  theme(legend.position = "right")  # Moves legend to the side
+
+# Display the final combined plot
+print(combined_plot)
 
 
 
