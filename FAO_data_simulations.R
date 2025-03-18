@@ -85,15 +85,6 @@ plot_original_distribution(FAO_data)
 # MCAR because randomly assign MV to each column without any dependency on the observed or unobserved data
 # ---------------------------------
 
-
-# #call function to generate MCAR
-# FAO_data_5pct <- MCAR_manipulation(FAO_data, 0.05) #5% missing values
-# FAO_data_10pct <- MCAR_manipulation(FAO_data, 0.1) #10% missing values
-# FAO_data_20pct <- MCAR_manipulation(FAO_data, 0.2) #20% missing values
-# FAO_data_25pct <- MCAR_manipulation(FAO_data, 0.25) #25% missing values
-# FAO_data_30pct <- MCAR_manipulation(FAO_data, 0.3) #30% missing values
-# FAO_data_40pct <- MCAR_manipulation(FAO_data, 0.4) #40% missing values
-
 #function to introduce MCAR missing values with balance across Visit 1 and Visit 2
 MCAR_manipulation_balanced <- function(data, missing_percentage){
   #copy dataset to avoid modifying the original
@@ -136,6 +127,43 @@ write_csv(FAO_data_20pct, "/Users/marcinebessire/Desktop/project/FAO_20pct.csv")
 write_csv(FAO_data_30pct, "/Users/marcinebessire/Desktop/project/FAO_30pct.csv")
 write_csv(FAO_data_40pct, "/Users/marcinebessire/Desktop/project/FAO_40pct.csv")
 
+
+#plot missing values
+plot_missing_values <- function(data, title) {
+  #convert data to long format
+  data_long <- melt(data, id.vars = c("ID", "Participant", "MonthDay", "Year", "Visit"))
+  
+  #create a column indicating missing values
+  data_long$Missing <- ifelse(is.na(data_long$value), "Missing", "Present")
+  
+  #correctly order Participant IDs 
+  sorted_participants <- mixedsort(unique(data_long$Participant))  
+  data_long$Participant <- factor(data_long$Participant, levels = sorted_participants)  #apply order
+  
+  #plot missing values using a heatmap
+  ggplot(data_long, aes(x = variable, y = Participant, fill = Missing)) +
+    geom_tile(color = "grey") +  #add borders for clarity
+    facet_wrap(~Visit, ncol = 2) +  #separate by Visit 1 and Visit 2
+    scale_fill_manual(values = c("Present" = "white", "Missing" = "red")) +
+    theme_minimal(base_size = 16) +  #set global font size
+    theme(
+      axis.text.x = element_text(angle = 45, hjust = 1, size = 12, face = "bold"),  
+      axis.text.y = element_text(size = 12, face = "bold"),  
+      axis.title.x = element_text(size = 16, face = "bold"),  
+      axis.title.y = element_text(size = 16, face = "bold"),  
+      strip.text = element_text(size = 18, face = "bold"),  
+      plot.title = element_text(size = 20, face = "bold", hjust = 0.5), 
+      legend.title = element_text(size = 16, face = "bold"),  
+      legend.text = element_text(size = 14)  
+    ) +
+    labs(title = title, x = "Metabolite", y = "Patient ID", fill = "Data Status")
+}
+
+#call function for plotting
+plot_missing_values(FAO_data_10pct, "Missing Data Pattern - 10% MCAR")
+plot_missing_values(FAO_data_20pct, "Missing Data Pattern - 20% MCAR")
+plot_missing_values(FAO_data_30pct, "Missing Data Pattern - 30% MCAR")
+plot_missing_values(FAO_data_40pct, "Missing Data Pattern - 40% MCAR")
 
 # # ---------- do not do it like this --------
 # # Function to introduce MCAR missing values with balance across Visit 1 and Visit 2

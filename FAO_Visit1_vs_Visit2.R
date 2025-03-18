@@ -138,12 +138,16 @@ FAO_long <- melt(FAO_original, id.vars = c("ID", "Participant", "MonthDay", "Yea
 ggplot(FAO_long, aes(x = Visit, y = Value, fill = Visit)) +
   geom_boxplot() +
   facet_wrap(~Metabolite, scales = "free") +
-  theme_minimal() +
+  theme_minimal(base_size = 14) +  # Adjusts the base font size
   labs(title = "Comparison of Metabolites Between Visits", 
        x = "Visit",
        y = "Metabolite Measurement") +
   theme(legend.position = "none",
-        axis.text.x = element_text(angle = 45, hjust = 1))
+        axis.text.x = element_text(angle = 45, hjust = 1, size = 14),  # Increase x-axis text size
+        axis.text.y = element_text(size = 14),  # Increase y-axis text size
+        axis.title = element_text(size = 14),  # Increase axis title size
+        strip.text = element_text(size = 14),  # Increase facet label size
+        plot.title = element_text(size = 16, face = "bold"))  # Increase title size
 
 
 # ------------------------------------
@@ -307,42 +311,42 @@ QRILC_40pct_2 <- QRILC_impuation(FAO_40pct_2)
 # Part 1.5: Combine datasets into 1
 # ----------------------------------
 
-# #make funciton to merge and order dataframes for each Imputation
-# merge_and_order <- function(data1, data2) {
-#   #combine datasets
-#   merged_data <- rbind(data1, data2)
-#   
-#   #convert Participant to a properly sorted factor
-#   merged_data$Participant <- factor(merged_data$Participant, 
-#                                     levels = mixedsort(unique(merged_data$Participant)))
-#   
-#   #order by Participant and MonthDay
-#   merged_data <- merged_data[order(merged_data$Participant, merged_data$MonthDay), ]
-#   
-#   return(merged_data)
-# }
-# 
-# #call function
-# #Halfmin
-# Halfmin_10pct_tot <- merge_and_order(Halfmin_10pct_1, Halfmin_10pct_2)
-# Halfmin_20pct_tot <- merge_and_order(Halfmin_20pct_1, Halfmin_20pct_2)
-# Halfmin_30pct_tot <- merge_and_order(Halfmin_30pct_1, Halfmin_30pct_2)
-# Halfmin_40pct_tot <- merge_and_order(Halfmin_10pct_1, Halfmin_40pct_2)
-# #KNN
-# KNN_10pct_tot <- merge_and_order(KNN_10pct_1, KNN_10pct_2)
-# KNN_20pct_tot <- merge_and_order(KNN_20pct_1, KNN_20pct_2)
-# KNN_30pct_tot <- merge_and_order(KNN_30pct_1, KNN_30pct_2)
-# KNN_40pct_tot <- merge_and_order(KNN_40pct_1, KNN_40pct_2)
-# #RF
-# RF_10pct_tot <- merge_and_order(RF_10pct_1, RF_10pct_2)
-# RF_20pct_tot <- merge_and_order(RF_20pct_1, RF_20pct_2)
-# RF_30pct_tot <- merge_and_order(RF_30pct_1, RF_30pct_2)
-# RF_40pct_tot <- merge_and_order(RF_40pct_1, RF_40pct_2)
-# #QRILC
-# QRILC_10pct_tot <- merge_and_order(QRILC_10pct_1, QRILC_10pct_2)
-# QRILC_20pct_tot <- merge_and_order(QRILC_20pct_1, QRILC_20pct_2)
-# QRILC_30pct_tot <- merge_and_order(QRILC_30pct_1, QRILC_30pct_2)
-# QRILC_40pct_tot <- merge_and_order(QRILC_40pct_1, QRILC_40pct_2)
+#make funciton to merge and order dataframes for each Imputation
+merge_and_order <- function(data1, data2) {
+  #combine datasets
+  merged_data <- rbind(data1, data2)
+
+  #convert Participant to a properly sorted factor
+  merged_data$Participant <- factor(merged_data$Participant,
+                                    levels = mixedsort(unique(merged_data$Participant)))
+
+  #order by Participant and MonthDay
+  merged_data <- merged_data[order(merged_data$Participant, merged_data$MonthDay), ]
+
+  return(merged_data)
+}
+
+#call function
+#Halfmin
+Halfmin_10pct_tot <- merge_and_order(Halfmin_10pct_1, Halfmin_10pct_2)
+Halfmin_20pct_tot <- merge_and_order(Halfmin_20pct_1, Halfmin_20pct_2)
+Halfmin_30pct_tot <- merge_and_order(Halfmin_30pct_1, Halfmin_30pct_2)
+Halfmin_40pct_tot <- merge_and_order(Halfmin_10pct_1, Halfmin_40pct_2)
+#KNN
+KNN_10pct_tot <- merge_and_order(KNN_10pct_1, KNN_10pct_2)
+KNN_20pct_tot <- merge_and_order(KNN_20pct_1, KNN_20pct_2)
+KNN_30pct_tot <- merge_and_order(KNN_30pct_1, KNN_30pct_2)
+KNN_40pct_tot <- merge_and_order(KNN_40pct_1, KNN_40pct_2)
+#RF
+RF_10pct_tot <- merge_and_order(RF_10pct_1, RF_10pct_2)
+RF_20pct_tot <- merge_and_order(RF_20pct_1, RF_20pct_2)
+RF_30pct_tot <- merge_and_order(RF_30pct_1, RF_30pct_2)
+RF_40pct_tot <- merge_and_order(RF_40pct_1, RF_40pct_2)
+#QRILC
+QRILC_10pct_tot <- merge_and_order(QRILC_10pct_1, QRILC_10pct_2)
+QRILC_20pct_tot <- merge_and_order(QRILC_20pct_1, QRILC_20pct_2)
+QRILC_30pct_tot <- merge_and_order(QRILC_30pct_1, QRILC_30pct_2)
+QRILC_40pct_tot <- merge_and_order(QRILC_40pct_1, QRILC_40pct_2)
 
 # ------------------------------------
 # Part 2: Statistical Tests  
