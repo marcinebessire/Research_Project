@@ -1416,6 +1416,7 @@ dist2_Halfmin_20pct <- plot_distribution(visit2_data, Halfmin_20pct_2, "Half-min
 dist2_Halfmin_30pct <- plot_distribution(visit2_data, Halfmin_30pct_2, "Half-min", 30, 2, significant_metabolites_wilcox)
 dist2_Halfmin_40pct <- plot_distribution(visit2_data, Halfmin_40pct_2, "Half-min", 40, 2, significant_metabolites_wilcox)
 
+
 #KNN
 # Visit 1
 dist1_KNN_10pct <- plot_distribution(visit1_data, KNN_10pct_1, "KNN", 10, 1, significant_metabolites_wilcox)
@@ -1908,7 +1909,7 @@ mean_differences <- bind_rows(
   compute_mean_difference(QRILC_40pct_tot, "QRILC (40%)")
 )
 
-# Convert Method to factor to maintain ordering
+x# Convert Method to factor to maintain ordering
 mean_differences$Method <- factor(mean_differences$Method, 
                                   levels = c("Original", 
                                              "Halfmin (10%)", "Halfmin (20%)", "Halfmin (30%)", "Halfmin (40%)",
