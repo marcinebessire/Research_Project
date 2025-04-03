@@ -338,8 +338,8 @@ non_normal_count_original23 #59 metabolites are non-normal distributed and with 
 #function to plot distribution before and after imputation (entire dataset)
 plot_whole_distribution <- function(original, imputed, method, year) {
   #numeric columns (starting from column 6)
-  numeric_original <- original[, 6:ncol(original)]
-  numeric_imputed <- imputed[, 6:ncol(imputed)]
+  numeric_original <- original
+  numeric_imputed <- imputed
   
   #count missing values in the original dataset
   missing_count <- sum(is.na(numeric_original))
@@ -399,8 +399,8 @@ plot_whole_distribution <- function(original, imputed, method, year) {
 }
 
 #example function call
-dist_halfmin23 <- plot_whole_distribution(original_23, half_min_23, "Half-min", "2023")
-dist_halfmin24 <- plot_whole_distribution(original_24, half_min_24, "Half-min", "2024")
+dist_halfmin23 <- plot_whole_distribution(original_23_metabolites, half_min_23_metabolites, "Half-min", "2023")
+dist_halfmin24 <- plot_whole_distribution(original_24_metabolites, half_min_24_metabolites, "Half-min", "2024")
 
 
 # Part 8 ------
