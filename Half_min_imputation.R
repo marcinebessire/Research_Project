@@ -387,10 +387,6 @@ plot_whole_distribution <- function(original, imputed, method, year) {
     labs(title = paste0("Overall Density Distribution Before and After Imputation (", method, " ", year, ")"),
          x = "Value",
          y = "Density") +
-    geom_vline(data = mean_data %>% filter(Data == "Original Data"),
-               aes(xintercept = mean_value), color = "blue", linewidth = 1, linetype = "dashed") + 
-    geom_vline(data = mean_data %>% filter(Data == "Imputed Data"),
-               aes(xintercept = mean_value), color = "red", linewidth = 1, linetype = "dashed") +
     xlim(-10, 100) + 
     theme(legend.position = "bottom")
   
